@@ -1,4 +1,3 @@
-
 package controller;
 
 import java.util.ArrayList;
@@ -870,14 +869,26 @@ public class CircleGrid extends GridPane {
                 });
                 
                 // Add click handler for selection
+             // Add click handler
                 circle.setOnMouseClicked(e -> {
                     if (selectedMarbles.contains(targetPair)) {
-                        // Deselect
+                        // Deselect marble
                         selectedMarbles.remove(targetPair);
                         circle.setStroke(Color.BLACK);
                         circle.setStrokeWidth(1);
                     } else {
-                        // Select
+                        // Allow up to 2 marbles when split panel is visible (Seven with canSplit),
+                        // exactly 2 for Jack (isSpecialCardActive), otherwise only 1.
+                        boolean splitVisible = mainScene != null
+                                && mainScene.splitRow != null
+                                && mainScene.splitRow.isVisible();
+                        int maxAllowed = isSpecialCardActive ? 2 : (splitVisible ? 2 : 1);
+
+                        if (selectedMarbles.size() >= maxAllowed) {
+                            return;
+                        }
+
+                        // Select marble
                         selectedMarbles.add(targetPair);
                         circle.setStroke(Color.WHITE);
                         circle.setStrokeWidth(3);

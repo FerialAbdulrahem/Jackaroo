@@ -16,26 +16,10 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.Spinner;
-import javafx.scene.control.SpinnerValueFactory;
+// Spinner removed — replaced with dual-circle split picker
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.*;
-import javafx.scene.layout.BackgroundRepeat;
-import javafx.scene.layout.Border;
-import javafx.scene.layout.BorderStroke;
-import javafx.scene.layout.BorderStrokeStyle;
-import javafx.scene.layout.BorderWidths;
-import javafx.scene.layout.ColumnConstraints;
-import javafx.scene.layout.CornerRadii;
-import javafx.scene.layout.GridPane;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.RowConstraints;
-import javafx.scene.layout.StackPane;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.LinearGradient;
 import javafx.scene.paint.Stop;
@@ -108,6 +92,7 @@ public class MainScene {
     public Rectangle deckShadow1, deckShadow2;
     public Button playButton;
     public Button skipButton;
+    public Button helpButton;
     public Label currentPlayerLabel, nextPlayerLabel;
     public Label remainingCards1, remainingCards2, remainingCards3, remainingCards4;
     public GridPane controlGrid;
@@ -126,8 +111,12 @@ public class MainScene {
     public VBox actionPanel;
     public Button discardButton;   // for Ten / Queen discard action
     public Button splitButton;     // for Seven split action
-    public Spinner<Integer> splitSpinner; // 1-6 spinner for split
+    public HBox splitRow;          // the split row container (stored as field, not looked up)
+    // Dual-circle split picker (replaces old Spinner)
     public Label splitLabel;
+    public Label splitCircle1;     // shows steps for marble 1
+    public Label splitCircle2;     // shows steps for marble 2
+    public int splitDist1 = 1;     // steps assigned to marble 1 (1–6, total always 7)
 
     // Constructor to initialize screen dimensions
     public MainScene() {
@@ -273,6 +262,9 @@ public class MainScene {
 
         // Skip button
         skipButton = createSkipButton();
+        // Help button (opens game description + Settings/Rules)
+        helpButton = createHelpButton();
+        gameBoard.getChildren().add(helpButton);
         gameBoard.getChildren().add(skipButton);
 
         // Turn labels — organized at top-right
@@ -351,29 +343,43 @@ public class MainScene {
         Rectangle bg = new Rectangle(cardW, cardH);
         bg.setArcWidth(calcSize(12));
         bg.setArcHeight(calcSize(12));
-        bg.setFill(Color.web("#FEFDF8"));
-        bg.setStroke(Color.web("#B8A080"));
+        javafx.scene.paint.LinearGradient cardGrad = new javafx.scene.paint.LinearGradient(
+            0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
+            new Stop(0.00, Color.web("#F7EFE2")),
+            new Stop(0.35, Color.web("#E9D9C8")),
+            new Stop(0.70, Color.web("#CDB89A")),
+            new Stop(1.00, Color.web("#B89B77")));
+        bg.setFill(cardGrad);
+        bg.setStroke(Color.web("#C4A97A"));
         bg.setStrokeWidth(calcSize(1.5));
+
+        // Subtle inner border for depth
+        Rectangle inner = new Rectangle(cardW - calcSize(10), cardH - calcSize(12));
+        inner.setArcWidth(calcSize(10)); inner.setArcHeight(calcSize(10));
+        inner.setFill(Color.TRANSPARENT);
+        inner.setStroke(Color.web("#F7EFE2", 0.18));
+        inner.setStrokeWidth(calcSize(1));
+        StackPane.setAlignment(inner, Pos.CENTER);
 
         // Top-left rank label
         Label rankLabel = new Label("?");
-        rankLabel.setFont(calcFont("Arial", FontWeight.BOLD, 18));
-        rankLabel.setTextFill(Color.BLACK);
+        rankLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 18));
+        rankLabel.setTextFill(Color.web("#5B3A23"));
         StackPane.setAlignment(rankLabel, Pos.TOP_LEFT);
         rankLabel.setTranslateX(calcSize(8));
         rankLabel.setTranslateY(calcSize(6));
 
         // Centre suit symbol (large)
         Label suitLabel = new Label("♠");
-        suitLabel.setFont(Font.font("Arial", FontWeight.BOLD, calcSize(36)));
-        suitLabel.setTextFill(Color.BLACK);
+        suitLabel.setFont(Font.font("Georgia", FontWeight.BOLD, calcSize(36)));
+        suitLabel.setTextFill(Color.web("#5B3A23"));
         StackPane.setAlignment(suitLabel, Pos.CENTER);
         suitLabel.setTranslateY(calcSize(-10));
 
         // Description at bottom
         Label descLabel = new Label("");
-        descLabel.setFont(calcFont("Arial", FontWeight.NORMAL, 9));
-        descLabel.setTextFill(Color.DIMGRAY);
+        descLabel.setFont(calcFont("Georgia", FontWeight.NORMAL, 10));
+        descLabel.setTextFill(Color.web("#3E2B23"));
         descLabel.setWrapText(true);
         descLabel.setMaxWidth(cardW - calcSize(10));
         descLabel.setTextAlignment(TextAlignment.CENTER);
@@ -382,12 +388,13 @@ public class MainScene {
 
         // "Card N" placeholder at centre-top
         Label cardNumLabel = new Label("Card " + (index + 1));
-        cardNumLabel.setFont(calcFont("Arial", FontWeight.BOLD, 11));
-        cardNumLabel.setTextFill(Color.GRAY);
+        cardNumLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 11));
+        cardNumLabel.setTextFill(Color.web("#7A5A43"));
         StackPane.setAlignment(cardNumLabel, Pos.TOP_CENTER);
         cardNumLabel.setTranslateY(calcSize(6));
 
-        StackPane panel = new StackPane(bg, rankLabel, suitLabel, descLabel, cardNumLabel);
+        // Compose panel with inner border on top
+        StackPane panel = new StackPane(bg, inner, rankLabel, suitLabel, descLabel, cardNumLabel);
         panel.setPrefSize(cardW, cardH);
         panel.setMaxSize(cardW, cardH);
 
@@ -414,14 +421,16 @@ public class MainScene {
         // Hover effect
         panel.setOnMouseEntered(e -> {
             if (panel.isVisible() && !checkBoxes[idx].isSelected()) {
-                bg.setStroke(Color.web("#C4A97A"));
+                bg.setStroke(Color.web("#E8C97A"));
                 bg.setStrokeWidth(calcSize(2.5));
+                bg.setEffect(new javafx.scene.effect.DropShadow(calcSize(8), Color.web("#000000", 0.45)));
             }
         });
         panel.setOnMouseExited(e -> {
             if (!checkBoxes[idx].isSelected()) {
-                bg.setStroke(Color.web("#B8A080"));
+                bg.setStroke(Color.web("#C4A97A"));
                 bg.setStrokeWidth(calcSize(1.5));
+                bg.setEffect(null);
             }
         });
 
@@ -443,17 +452,7 @@ public class MainScene {
         }
     }
 
-    /**
-     * Updates a card panel's visuals (rank, suit, description).
-     * Called from Main whenever the hand changes.
-     *
-     * @param index       card slot index (0-3)
-     * @param rankStr     e.g. "A", "K", "10", "J", "Q", "7"
-     * @param suitSymbol  e.g. "♠", "♥", "♦", "♣"  (empty string for wild cards)
-     * @param suitColor   Color.RED for hearts/diamonds, Color.BLACK for clubs/spades
-     * @param description short description text
-     * @param cardTitle   full card name shown at top centre
-     */
+ 
     public void updateCardPanel(int index, String rankStr, String suitSymbol,
             Color suitColor, String description, String cardTitle) {
 		if (cardPanels[index] == null) return;
@@ -482,119 +481,250 @@ public class MainScene {
     }
 
 
-    // ─── Action Panel (Discard / Split) ─────────────────────────────────────────
-
-    /**
-     * Builds the action panel placed below the card hand.
-     * Contains: Discard button (for Ten/Queen) and Split row (for Seven).
-     */
     private void buildActionPanel(AnchorPane gameBoard) {
         actionPanel = new VBox(calcSize(10));
-        actionPanel.setLayoutX(calcX(1340.0));
-        actionPanel.setLayoutY(calcY(760.0));
+        actionPanel.setLayoutX(calcX(1500.0));
+        actionPanel.setLayoutY(calcY(420.0));
         actionPanel.setAlignment(Pos.CENTER_LEFT);
-        actionPanel.setPadding(new Insets(calcSize(8)));
+        actionPanel.setPadding(new Insets(calcSize(12)));
         actionPanel.setBackground(new Background(new BackgroundFill(
-                Color.web("#1C0F05", 0.90), new CornerRadii(calcSize(10)), Insets.EMPTY)));
+                Color.web("#1C0F05", 0.93), new CornerRadii(calcSize(12)), Insets.EMPTY)));
         actionPanel.setBorder(new Border(new BorderStroke(
-                Color.web("#C4A97A"), BorderStrokeStyle.SOLID, new CornerRadii(calcSize(10)), new BorderWidths(calcSize(1.5)))));
+                Color.web("#C4A97A"), BorderStrokeStyle.SOLID,
+                new CornerRadii(calcSize(12)), new BorderWidths(calcSize(1.5)))));
+        javafx.scene.effect.DropShadow panelShadow = new javafx.scene.effect.DropShadow();
+        panelShadow.setColor(Color.web("#000000", 0.65));
+        panelShadow.setRadius(calcSize(14));
+        panelShadow.setOffsetX(calcSize(2));
+        panelShadow.setOffsetY(calcSize(3));
+        actionPanel.setEffect(panelShadow);
         actionPanel.setVisible(false);
 
-        // Discard button (Ten / Queen)
-        discardButton = new Button("🗑  Discard Card");
-        styleActionButton(discardButton, "#e53935", "#b71c1c");
+        // ── Discard button (Ten / Queen / no-marbles-out) ──────────────────────
+        discardButton = new Button("\uD83D\uDDD1  Discard Card");
+        styleWalnutButton(discardButton, "#7B1F1F", "#4A0F0F", "#C8625A");
+        discardButton.setPrefHeight(calcSize(44));
+        discardButton.setPrefWidth(calcSize(270));
         discardButton.setVisible(false);
+        discardButton.setManaged(false);
 
-        // Split row (Seven)
-        splitLabel = new Label("Split distance:");
-        splitLabel.setFont(calcFont("Arial", FontWeight.BOLD, 13));
+        // ── Seven split: header label ──────────────────────────────────────────
+        splitLabel = new Label("Split 7 steps between 2 marbles:");
+        splitLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 12));
         splitLabel.setTextFill(Color.web("#E8C97A"));
+        splitLabel.setVisible(false);
+        splitLabel.setManaged(false);
 
-        splitSpinner = new Spinner<>(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 6, 3));
-        splitSpinner.setPrefWidth(calcSize(70));
-        splitSpinner.setEditable(true);
+        // ── Build the two circle columns ───────────────────────────────────────
+        splitDist1 = 1;
+        javafx.scene.layout.VBox marble1Col = buildSplitColumn(1);
+        javafx.scene.layout.VBox marble2Col = buildSplitColumn(2);
 
-        splitButton = new Button("✂  Apply Split");
-        styleActionButton(splitButton, "#1976d2", "#0d47a1");
-        splitButton.setVisible(false);
+        // "+" divider between circles
+        Label vsLabel = new Label("+");
+        vsLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 20));
+        vsLabel.setTextFill(Color.web("#C4A97A"));
+        vsLabel.setAlignment(Pos.CENTER);
 
-        HBox splitRow = new HBox(calcSize(8), splitLabel, splitSpinner, splitButton);
+        // ✂ Apply Split button
+    splitButton = new Button("✂  Apply Split");
+    String splitBase =
+        "-fx-background-color: linear-gradient(to bottom, #1A4A2A, #0A2010);" +
+        "-fx-text-fill: #C8F0D0;" +
+        "-fx-font-weight: bold;" +
+        "-fx-font-family: 'Georgia';" +
+        "-fx-font-size: " + (int) calcSize(14) + "px;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #4CAF50;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.65), 12, 0, 2, 5);";
+    String splitHover =
+        "-fx-background-color: linear-gradient(to bottom, #4CAF50, #2E7D32);" +
+        "-fx-text-fill: #FFFDE7;" +
+        "-fx-font-weight: bold;" +
+        "-fx-font-family: 'Georgia';" +
+        "-fx-font-size: " + (int) calcSize(14) + "px;" +
+        "-fx-background-radius: 14;" +
+        "-fx-border-color: #A5D6A7;" +
+        "-fx-border-radius: 14;" +
+        "-fx-border-width: 2;" +
+        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 16, 0, 2, 6);";
+    splitButton.setStyle(splitBase);
+    splitButton.setOnMouseEntered(e -> splitButton.setStyle(splitHover));
+    splitButton.setOnMouseExited(e -> splitButton.setStyle(splitBase));
+    splitButton.setPrefHeight(calcSize(44));
+    splitButton.setPrefWidth(calcSize(160));
+
+        // picker: [col1] [+] [col2]   and apply button below
+        HBox circleRow = new HBox(calcSize(10), marble1Col, vsLabel, marble2Col);
+        circleRow.setAlignment(Pos.CENTER_LEFT);
+
+        // splitRow wraps [circleRow + splitButton] so we can hide/show everything together
+        splitRow = new HBox(calcSize(12), circleRow, splitButton);
         splitRow.setAlignment(Pos.CENTER_LEFT);
         splitRow.setVisible(false);
         splitRow.setManaged(false);
-        splitRow.setId("splitRow");
 
-        actionPanel.getChildren().addAll(discardButton, splitRow);
+        actionPanel.getChildren().addAll(discardButton, splitLabel, splitRow);
         gameBoard.getChildren().add(actionPanel);
     }
 
-    private void styleActionButton(Button btn, String normalColor, String hoverColor) {
-        String base = "-fx-background-color: " + normalColor + "; -fx-text-fill: white; " +
-                "-fx-font-weight: bold; -fx-font-size: " + (int) calcSize(13) + "px; " +
-                "-fx-padding: " + (int) calcSize(6) + " " + (int) calcSize(18) + "; " +
-                "-fx-background-radius: " + (int) calcSize(6) + ";";
-        String hover = "-fx-background-color: " + hoverColor + "; -fx-text-fill: white; " +
-                "-fx-font-weight: bold; -fx-font-size: " + (int) calcSize(13) + "px; " +
-                "-fx-padding: " + (int) calcSize(6) + " " + (int) calcSize(18) + "; " +
-                "-fx-background-radius: " + (int) calcSize(6) + ";";
+    /** Builds one marble column: header, [−] circle [+] */
+    private javafx.scene.layout.VBox buildSplitColumn(int slot) {
+        int initVal = (slot == 1) ? splitDist1 : (7 - splitDist1);
+        Label circle = new Label(String.valueOf(initVal));
+        circle.setAlignment(Pos.CENTER);
+        circle.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
+        double cSize = calcSize(52);
+        circle.setMinSize(cSize, cSize);
+        circle.setMaxSize(cSize, cSize);
+        circle.setPrefSize(cSize, cSize);
+        circle.setFont(calcFont("Georgia", FontWeight.BOLD, 24));
+        circle.setTextFill(Color.web("#FAF3E0"));
+        circle.setBackground(new Background(new BackgroundFill(
+                Color.web("#1A3A5C"), new CornerRadii(cSize / 2), Insets.EMPTY)));
+        circle.setBorder(new Border(new BorderStroke(
+                Color.web("#5A9BD4"), BorderStrokeStyle.SOLID,
+                new CornerRadii(cSize / 2), new BorderWidths(calcSize(2.5)))));
+        javafx.scene.effect.DropShadow cs = new javafx.scene.effect.DropShadow();
+        cs.setColor(Color.web("#000000", 0.55)); cs.setRadius(calcSize(9));
+        circle.setEffect(cs);
+
+        if (slot == 1) splitCircle1 = circle;
+        else           splitCircle2 = circle;
+
+        Button minus = new Button("−");
+        styleCircleStepBtn(minus);
+        minus.setOnAction(ev -> adjustSplit(slot, -1));
+
+        Button plus = new Button("+");
+        styleCircleStepBtn(plus);
+        plus.setOnAction(ev -> adjustSplit(slot, +1));
+
+        HBox controls = new HBox(calcSize(4), minus, circle, plus);
+        controls.setAlignment(Pos.CENTER);
+
+        Label header = new Label("Marble " + slot);
+        header.setFont(calcFont("Georgia", FontWeight.BOLD, 10));
+        header.setTextFill(Color.web("#C4A97A"));
+        header.setAlignment(Pos.CENTER);
+        header.setMinWidth(calcSize(120));
+
+        javafx.scene.layout.VBox col = new javafx.scene.layout.VBox(calcSize(4), header, controls);
+        col.setAlignment(Pos.CENTER);
+        return col;
+    }
+
+    private void styleWalnutButton(Button btn, String darkColor, String darkerColor, String borderColor) {
+        String base =
+            "-fx-background-color: linear-gradient(to bottom, " + darkColor + ", " + darkerColor + ");" +
+            "-fx-text-fill: #FAF3E0;" +
+            "-fx-font-weight: bold;" +
+            "-fx-font-family: 'Georgia';" +
+            "-fx-font-size: " + (int) calcSize(14) + "px;" +
+            "-fx-background-radius: 14;" +
+            "-fx-border-color: " + borderColor + ";" +
+            "-fx-border-radius: 14;" +
+            "-fx-border-width: 1.5;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.60), 10, 0, 2, 4);";
+        String hover =
+            "-fx-background-color: linear-gradient(to bottom, " + borderColor + ", " + darkColor + ");" +
+            "-fx-text-fill: #FFFDE7;" +
+            "-fx-font-weight: bold;" +
+            "-fx-font-family: 'Georgia';" +
+            "-fx-font-size: " + (int) calcSize(14) + "px;" +
+            "-fx-background-radius: 14;" +
+            "-fx-border-color: #D7CCC8;" +
+            "-fx-border-radius: 14;" +
+            "-fx-border-width: 2;" +
+            "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 14, 0, 2, 6);";
         btn.setStyle(base);
         btn.setOnMouseEntered(e -> btn.setStyle(hover));
         btn.setOnMouseExited(e -> btn.setStyle(base));
     }
 
-    /**
-     * Shows the action panel with the correct buttons based on card type.
-     *
-     * @param cardType  "TEN", "QUEEN", "SEVEN", or "" (hide)
-     * @param canSplit  true only when exactly 2 human marbles are on the track
-     */
-    public void showActionPanel(String cardType, boolean canSplit) {
-        HBox splitRow = (HBox) actionPanel.lookup("#splitRow");
+    private void styleCircleStepBtn(Button btn) {
+        double s = calcSize(28);
+        btn.setMinSize(s, s); btn.setMaxSize(s, s); btn.setPrefSize(s, s);
+        String base =
+            "-fx-background-color: linear-gradient(to bottom,#2C4A6A,#0D2240);" +
+            "-fx-text-fill:#FAF3E0;-fx-font-weight:bold;-fx-font-family:Georgia;" +
+            "-fx-font-size:" + (int) calcSize(17) + "px;" +
+            "-fx-background-radius:" + (int)(s/2) + ";" +
+            "-fx-border-color:#5A9BD4;-fx-border-radius:" + (int)(s/2) + ";-fx-border-width:1.5;" +
+            "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.55),6,0,1,2);";
+        String hover =
+            "-fx-background-color: linear-gradient(to bottom,#5A9BD4,#2C4A6A);" +
+            "-fx-text-fill:#FFFDE7;-fx-font-weight:bold;-fx-font-family:Georgia;" +
+            "-fx-font-size:" + (int) calcSize(17) + "px;" +
+            "-fx-background-radius:" + (int)(s/2) + ";" +
+            "-fx-border-color:#D7CCC8;-fx-border-radius:" + (int)(s/2) + ";-fx-border-width:2;" +
+            "-fx-effect:dropshadow(gaussian,rgba(0,0,0,0.7),8,0,1,3);";
+        btn.setStyle(base);
+        btn.setOnMouseEntered(ev -> btn.setStyle(hover));
+        btn.setOnMouseExited(ev -> btn.setStyle(base));
+    }
 
+    /** Adjusts the split. slot=1 adjusts marble-1, slot=2 adjusts marble-2 (mirror). Total always = 7. */
+    public void adjustSplit(int slot, int delta) {
+        int newDist1 = (slot == 1) ? (splitDist1 + delta) : (splitDist1 - delta);
+        newDist1 = Math.max(1, Math.min(6, newDist1));
+        splitDist1 = newDist1;
+        if (splitCircle1 != null) splitCircle1.setText(String.valueOf(splitDist1));
+        if (splitCircle2 != null) splitCircle2.setText(String.valueOf(7 - splitDist1));
+    }
+
+    /** Returns how many steps marble-1 gets in the split (marble-2 gets 7 minus this). */
+    public int getSplitDistance() {
+        return splitDist1;
+    }
+
+    public void showActionPanel(String cardType, boolean canSplit) {
+        // Reset everything
         discardButton.setVisible(false);
-        if (splitRow != null) {
-            splitRow.setVisible(false);
-            splitRow.setManaged(false);
-        }
-        splitButton.setVisible(false);
+        discardButton.setManaged(false);
+        splitLabel.setVisible(false);
+        splitLabel.setManaged(false);
+        splitRow.setVisible(false);
+        splitRow.setManaged(false);
+        actionPanel.setVisible(false);
 
         switch (cardType) {
             case "TEN":
-                discardButton.setText("🗑  Discard Opponent's Card (Ten)");
+                discardButton.setText("\uD83D\uDDD1  Discard Opponent\u2019s Card (Ten)");
                 discardButton.setVisible(true);
+                discardButton.setManaged(true);
                 actionPanel.setVisible(true);
                 break;
             case "QUEEN":
-                discardButton.setText("🗑  Discard Opponent's Card (Queen)");
+                discardButton.setText("\uD83D\uDDD1  Discard Opponent\u2019s Card (Queen)");
                 discardButton.setVisible(true);
+                discardButton.setManaged(true);
                 actionPanel.setVisible(true);
                 break;
             case "DISCARD_ANY":
-                discardButton.setText("🗑  Discard This Card (No Marbles Out)");
+                discardButton.setText("\uD83D\uDDD1  Discard This Card");
                 discardButton.setVisible(true);
+                discardButton.setManaged(true);
                 actionPanel.setVisible(true);
                 break;
             case "SEVEN":
-                if (canSplit && splitRow != null) {
+                if (canSplit) {
+                    splitLabel.setVisible(true);
+                    splitLabel.setManaged(true);
                     splitRow.setVisible(true);
                     splitRow.setManaged(true);
-                    splitButton.setVisible(true);
                     actionPanel.setVisible(true);
-                } else {
-                    // Seven acts as normal card, no split needed
-                    actionPanel.setVisible(false);
                 }
+                // canSplit=false means only 1 marble on track → play via Play button, no panel needed
                 break;
             default:
-                actionPanel.setVisible(false);
+                // leave everything hidden
                 break;
         }
     }
 
-    /** Returns the split distance currently selected in the spinner (1-6). */
-    public int getSplitDistance() {
-        return splitSpinner.getValue();
-    }
 
     // ─── updateAllComponents ────────────────────────────────────────────────────
 
@@ -661,7 +791,7 @@ public class MainScene {
         controlGrid.setHgap(calcSize(12));
 
         actionPanel.setLayoutX(calcX(1500.0));
-        actionPanel.setLayoutY(calcY(760.0));
+        actionPanel.setLayoutY(calcY(420.0));
 
         remainingCards1.setLayoutX(calcX(1120.0));
         remainingCards1.setLayoutY(calcY(14.0));
@@ -1035,6 +1165,140 @@ public class MainScene {
         button.setOnMouseExited(e -> button.setStyle(baseStyle));
 
         return button;
+    }
+
+    public Button createHelpButton() {
+        Button button = new Button("❓ Help");
+        button.setLayoutX(calcX(1500.0));
+        button.setLayoutY(calcY(280.0));
+        button.setMnemonicParsing(false);
+        button.setPrefHeight(calcSize(40.0));
+        button.setPrefWidth(calcSize(120.0));
+        button.setFont(calcFont("Georgia", FontWeight.BOLD, 14));
+
+        String baseStyle =
+                "-fx-background-color: linear-gradient(to bottom, #2E7D32, #1B5E20);" +
+                "-fx-text-fill: #FAF3E0;" +
+                "-fx-font-weight: bold;" +
+                "-fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int) calcSize(14) + "px;" +
+                "-fx-background-radius: 10;" +
+                "-fx-border-color: #2E7D32;" +
+                "-fx-border-radius: 10;" +
+                "-fx-border-width: 1.5;";
+
+        String hoverStyle =
+                "-fx-background-color: linear-gradient(to bottom, #66BB6A, #2E7D32);" +
+                "-fx-text-fill: #FFFDE7;" +
+                "-fx-font-weight: bold;" +
+                "-fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int) calcSize(14) + "px;" +
+                "-fx-background-radius: 10;" +
+                "-fx-border-color: #D7CCC8;" +
+                "-fx-border-radius: 10;" +
+                "-fx-border-width: 1.5;";
+
+        button.setStyle(baseStyle);
+        button.setOnMouseEntered(e -> button.setStyle(hoverStyle));
+        button.setOnMouseExited(e -> button.setStyle(baseStyle));
+
+        button.setOnAction(e -> showHelpDialog());
+        return button;
+    }
+
+    private void showHelpDialog() {
+        Stage dlg = new Stage();
+        dlg.initModality(Modality.APPLICATION_MODAL);
+        dlg.setTitle("About Jackaroo — Overview & Help");
+
+        String desc = "Jackaroo — Quick Game Overview:\n\n" +
+                "Players take turns playing cards to move marbles around the board. " +
+                "Special cards have effects: Ten/Queen may discard a card from another player and skip their turn; " +
+                "Seven can split 7 steps between two marbles; Ace/King can field marbles from Home.\n\n" +
+                "Use the Play and Skip buttons to play or discard. The board shows your marbles (bottom-left) and CPUs around the board.\n\n" +
+                "Click 'Rules' below for full rules and card reference.";
+
+        Label descLbl = new Label(desc);
+        descLbl.setWrapText(true);
+        descLbl.setFont(calcFont(14));
+        descLbl.setMaxWidth(calcSize(420));
+
+        Button rulesBtn = new Button("📜 Rules");
+        Button settingsBtn = new Button("⚙ Settings");
+        styleWalnutButton(rulesBtn, "#2B3A67", "#14213D", "#5C6BC0");
+        styleWalnutButton(settingsBtn, "#5D4037", "#3E2723", "#372412");
+        rulesBtn.setOnAction(ev -> showRulesDialog());
+        settingsBtn.setOnAction(ev -> showSettingsDialog());
+
+        HBox btnRow = new HBox(calcSize(12), settingsBtn, rulesBtn);
+        btnRow.setAlignment(Pos.CENTER);
+
+        VBox v = new VBox(calcSize(12), descLbl, btnRow);
+        v.setPadding(new Insets(calcSize(12)));
+        v.setAlignment(Pos.CENTER_LEFT);
+
+        Scene s = new Scene(v);
+        dlg.setScene(s);
+        dlg.setWidth(calcSize(480));
+        dlg.setHeight(calcSize(320));
+        dlg.showAndWait();
+    }
+
+    private void showRulesDialog() {
+        Stage dlg = new Stage();
+        dlg.initModality(Modality.APPLICATION_MODAL);
+        dlg.setTitle("Full Rules — Jackaroo");
+
+        String rules =
+            "Basic Rules:\n" +
+            "- Each player has 4 marbles in Home. Goal: move all marbles around the track into your Safe Zone.\n" +
+            "- Play cards to move your marbles or use special actions (see card reference).\n\n" +
+            "Card highlights:\n" +
+            "- Ace: Field a marble from Home or move 1 step.\n" +
+            "- Seven: Split 7 steps between two marbles (select 2 marbles on track).\n" +
+            "- Ten: Discard an opponent's card and skip their next turn, or move 10 steps.\n" +
+            "- Queen: Discard a random opponent card and skip their next turn, or move 12 steps.\n" +
+            "- Jack: Swap or move 11 steps.\n" +
+            "- Burners/Savers: Special wild cards (see in-game card descriptions).\n\n" +
+            "Gameplay:\n" +
+            "- Select a card from your hand, select marbles (one or two for Seven), then press Play.\n" +
+            "- If you cannot play, use Skip to discard a card and end your turn.\n" +
+            "- The game automatically advances CPU turns after you play.\n\n" +
+            "This in-game Rules panel gives a quick reference. For the full card CSV use the project files.";
+
+        Label rulesLbl = new Label(rules);
+        rulesLbl.setWrapText(true);
+        rulesLbl.setFont(calcFont(13));
+        rulesLbl.setMaxWidth(calcSize(560));
+
+        VBox v = new VBox(calcSize(10), rulesLbl);
+        v.setPadding(new Insets(calcSize(12)));
+
+        Scene s = new Scene(v);
+        dlg.setScene(s);
+        dlg.setWidth(calcSize(640));
+        dlg.setHeight(calcSize(480));
+        dlg.showAndWait();
+    }
+
+    private void showSettingsDialog() {
+        Stage dlg = new Stage();
+        dlg.initModality(Modality.APPLICATION_MODAL);
+        dlg.setTitle("Settings");
+
+        CheckBox hints = new CheckBox("Enable move hints (visual)");
+        CheckBox fastCPU = new CheckBox("Faster CPU turns");
+        hints.setSelected(true);
+        fastCPU.setSelected(false);
+
+        VBox v = new VBox(calcSize(12), hints, fastCPU);
+        v.setPadding(new Insets(calcSize(12)));
+
+        Scene s = new Scene(v);
+        dlg.setScene(s);
+        dlg.setWidth(calcSize(360));
+        dlg.setHeight(calcSize(220));
+        dlg.showAndWait();
     }
 
 

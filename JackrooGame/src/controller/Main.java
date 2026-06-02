@@ -332,6 +332,10 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         Card cardToDiscard = cardIdx >= 0 && cardIdx < human.getHand().size()
                 ? human.getHand().get(cardIdx)
                 : human.getHand().get(0);
+        int[] handsBefore = new int[4];
+        for (int pi = 0; pi < 4; pi++) {
+            handsBefore[pi] = game.getPlayers().get(pi).getHand().size();
+        }
         try {
             game.selectCard(cardToDiscard);
             game.endPlayerTurn();   // ends without playing — card is removed from hand
@@ -341,6 +345,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             try { game.endPlayerTurn(); } catch (Exception ignored) {}
         }
         String discardedName = cardToDiscard.getName();
+        if (discardedName.toUpperCase().contains("TEN") || discardedName.toUpperCase().contains("QUEEN")) {
+            for (int pi = 1; pi < 4; pi++) {
+                if (game.getPlayers().get(pi).getHand().size() < handsBefore[pi]) {
+                    skippedPlayers.add(game.getPlayers().get(pi).getColour());
+                    break;
+                }
+            }
+        }
         syncBoardFromEngine(ms, game, fxColors);
         deselectAllCards(ms);
         ms.c.clearMarbleSelections();
@@ -367,16 +379,17 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         Colour humanColour = game.getPlayers().get(0).getColour();
         if (skippedPlayers.contains(humanColour)) {
             skippedPlayers.remove(humanColour);
-            // Advance turn WITHOUT removing another card (Ten/Queen already discarded one)
-            try {
-                game.endPlayerTurn();
-            } catch (Exception ignored) {}
+            // Ten/Queen already removed a card from our hand.
+            // endPlayerTurn() with null selectedCard: hand.remove(null) → no-op,
+            // then currentPlayerIndex advances past us. ✓
+            try { game.endPlayerTurn(); } catch (Exception ignored) {}
             syncBoardFromEngine(ms, game, fxColors);
             updateGameUI(ms, game, fxColors);
             refreshCardPanels(ms, game.getPlayers().get(0));
+            syncCpuCardRows(ms, game);
             ms.c.makeMarbleSelectable();
-            showInfo("Turn Skipped", "Your turn was skipped! You can play next turn.");
-            // DO NOT call handleCPUTurns — CPUs already played (or are playing) in the current round loop
+            showInfo("Turn Skipped", "Your turn was skipped by Ten/Queen!");
+            handleCPUTurns(ms, game, fxColors);   // ← was missing: CPUs must still play
             return;
         }
 
@@ -406,17 +419,14 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
             int[] handsBefore = new int[4];
             for (int pi = 0; pi < 4; pi++) handsBefore[pi] = game.getPlayers().get(pi).getHand().size();
-            Colour tenTarget = cardName.contains("TEN") ? game.getNextPlayerColour() : null;
 
             game.playPlayerTurn();
             String playedName = card.getName();
             game.endPlayerTurn();
 
-            // Detect Ten/Queen skip target
-            if (cardName.contains("TEN") && tenTarget != null) {
-                skippedPlayers.add(tenTarget);
-            } else if (cardName.contains("QUEEN")) {
-                for (int pi = 0; pi < 4; pi++) {
+            // Detect which opponent lost a card due to Ten/Queen
+            if (cardName.contains("TEN") || cardName.contains("QUEEN")) {
+                for (int pi = 1; pi < 4; pi++) {
                     if (game.getPlayers().get(pi).getHand().size() < handsBefore[pi]) {
                         skippedPlayers.add(game.getPlayers().get(pi).getColour());
                         break;
@@ -431,6 +441,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             updateFirePit(ms, game, playedName);
             refreshCardPanels(ms, human);
             updateGameUI(ms, game, fxColors);
+            syncCpuCardRows(ms, game);
             ms.c.makeMarbleSelectable();
             showInfo("Played", playedName);
 
@@ -443,8 +454,20 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             handleCPUTurns(ms, game, fxColors);
 
         } catch (Exception ex) {
-            game.deselectAll();
-            displayAlert2("Invalid Move", ex.getMessage() != null ? ex.getMessage() : ex.toString());
+            // Fully reset engine + UI so the game is never stuck
+            try { game.deselectAll(); } catch (Exception ignored2) {}
+            // Reset card selection visuals
+            deselectAllCards(ms);
+            ms.c.clearMarbleSelections();
+            ms.actionPanel.setVisible(false);
+            // Re-render hand in case indices shifted (e.g. card was removed before exception)
+            refreshCardPanels(ms, game.getPlayers().get(0));
+            syncBoardFromEngine(ms, game, fxColors);
+            updateGameUI(ms, game, fxColors);
+            syncCpuCardRows(ms, game);
+            ms.c.makeMarbleSelectable();
+            String errMsg = ex.getMessage();
+            displayAlert2("Invalid Move", errMsg != null && !errMsg.isEmpty() ? errMsg : ex.getClass().getSimpleName());
         }
     }
 
@@ -459,15 +482,18 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 Platform.runLater(() -> {
                     Player cpu = game.getPlayers().get(pi);
 
-                    // ── Ten/Queen skip: advance turn WITHOUT discarding another card ──
+                    // ── Ten/Queen skip: the card was ALREADY removed by the engine.
+                    // We only need to advance past this CPU's turn without touching their hand.
                     if (skippedPlayers.contains(cpu.getColour())) {
                         skippedPlayers.remove(cpu.getColour());
+                        // End turn without selecting any card — engine will advance the turn pointer
                         try {
                             game.endPlayerTurn();
                         } catch (Exception ignored) {}
                         syncBoardFromEngine(ms, game, fxColors);
                         updateGameUI(ms, game, fxColors);
-                        showInfo("Turn Skipped", cpu.getName() + "'s turn was skipped!");
+                        syncCpuCardRows(ms, game);
+                        showInfo("Turn Skipped", cpu.getName() + "'s turn was skipped (Ten/Queen)!");
                         return;
                     }
 
@@ -500,27 +526,20 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                         // Normal CPU play — snapshot hands to detect Ten/Queen skip
                         int[] handsBeforeCPU = new int[4];
                         for (int hp = 0; hp < 4; hp++) handsBeforeCPU[hp] = game.getPlayers().get(hp).getHand().size();
-                        Colour tenTargetCPU = null;
 
                         game.playPlayerTurn();
                         Card played = cpu.getSelectedCard();
                         if (played != null) {
                             playedName = played.getName();
-                            String pn = playedName.toUpperCase();
-                            if (pn.contains("TEN")) {
-                                tenTargetCPU = game.getPlayers().get((pi + 1) % 4).getColour();
-                            }
                         }
                         game.endPlayerTurn();
 
-                        // Register skip targets
+                        // Register skip targets: find which opponent had a card removed
                         if (played != null) {
                             String pn = playedName.toUpperCase();
-                            if (pn.contains("TEN") && tenTargetCPU != null) {
-                                skippedPlayers.add(tenTargetCPU);
-                            } else if (pn.contains("QUEEN")) {
+                            if (pn.contains("TEN") || pn.contains("QUEEN")) {
                                 for (int hp = 0; hp < 4; hp++) {
-                                    if (game.getPlayers().get(hp).getHand().size() < handsBeforeCPU[hp]) {
+                                    if (hp != pi && game.getPlayers().get(hp).getHand().size() < handsBeforeCPU[hp]) {
                                         skippedPlayers.add(game.getPlayers().get(hp).getColour());
                                         break;
                                     }
@@ -539,6 +558,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                     }
 
                     syncBoardFromEngine(ms, game, fxColors);
+                    syncCpuCardRows(ms, game);
                     if (!playedName.isEmpty()) {
                         updateFirePit(ms, game, playedName);
                         showInfo(cpu.getName() + " played", playedName);
@@ -546,7 +566,7 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                     updateGameUI(ms, game, fxColors);
 
                     Colour winner = game.checkWin();
-                    if (winner != null) displayAlert2("Game Over!", winner + " wins!");
+                    if (winner != null) { displayAlert2("Game Over!", winner + " wins!"); return; }
                 });
 
                 try { Thread.sleep(400); } catch (InterruptedException ex) { ex.printStackTrace(); }
@@ -556,16 +576,19 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 Player human = game.getPlayers().get(0);
                 int currentHandSize = human.getHand().size();
                 if (currentHandSize == 4 && lastHandSize < 4) {
-                    uiRoundCounter++;
-                    if (uiRoundCounter % 4 == 0) {
-                        updateFirePit(ms, game, "🃏 New Cards");
-                        showInfo("New Cards Dealt!", "Everyone has received a fresh hand of cards!");
-                    }
+                    // New round — cards were dealt. Show notification every round.
+                    updateFirePit(ms, game, "🃏 New Cards");
+                    showInfo("New Round!", "New cards dealt to all players!");
                 }
                 lastHandSize = currentHandSize;
                 refreshCardPanels(ms, human);
                 syncCpuCardRows(ms, game);
                 ms.c.makeMarbleSelectable();
+
+                if (processSkippedHumanTurn(ms, game, fxColors)) {
+                    return;
+                }
+
                 showInfo("Your Turn", "CPUs have played. Select a card and marble!");
             });
         });
@@ -573,7 +596,23 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         t.start();
     }
 
-    // ─── SYNC BOARD FROM ENGINE ───────────────────────────────────────────────────
+    private static boolean processSkippedHumanTurn(MainScene ms, Game game, Color[] fxColors) {
+        Colour humanColour = game.getPlayers().get(0).getColour();
+        if (!skippedPlayers.contains(humanColour)) {
+            return false;
+        }
+
+        skippedPlayers.remove(humanColour);
+        try { game.endPlayerTurn(); } catch (Exception ignored) {}
+        syncBoardFromEngine(ms, game, fxColors);
+        updateGameUI(ms, game, fxColors);
+        refreshCardPanels(ms, game.getPlayers().get(0));
+        syncCpuCardRows(ms, game);
+        ms.c.makeMarbleSelectable();
+        showInfo("Turn Skipped", "Your turn was skipped by a discard effect.");
+        handleCPUTurns(ms, game, fxColors);
+        return true;
+    }
 
     private static void syncBoardFromEngine(MainScene ms, Game game, Color[] fxColors) {
         // Load the wood texture image once
@@ -599,7 +638,6 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 if (marble != null) {
                     circle.setFill(colourToFX(marble.getColour()));
                 } else {
-                    // Use faded player color OR texture for empty safe zone
                     circle.setFill(playerFaded);
                 }
                 circle.setStroke(Color.BLACK);
@@ -613,9 +651,9 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             for (int m = 0; m < 4; m++) {
                 javafx.scene.shape.Circle circle = ms.c.homeCellPairs.get(p * 4 + m).getCircle();
                 if (m < inHome) {
-                    circle.setFill(fxColors[p]); // player marble color
+                    circle.setFill(fxColors[p]);
                 } else {
-                    circle.setFill(emptyPattern); // empty home slot uses texture
+                    circle.setFill(emptyPattern);
                 }
             }
         }
@@ -652,6 +690,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             final int idx = i;
             ms.cardPanels[i].setOnMouseClicked(e -> {
                 if (!ms.cardPanels[idx].isVisible()) return;
+                // Guard: index must still be valid in the current hand
+                if (idx >= game.getPlayers().get(0).getHand().size()) {
+                    // Hand shrank (e.g. card just played) — hide stale panel and reset
+                    ms.hideCardPanel(idx);
+                    deselectAllCards(ms);
+                    ms.c.clearMarbleSelections();
+                    ms.actionPanel.setVisible(false);
+                    return;
+                }
                 boolean wasSelected = ms.checkBoxes[idx].isSelected();
                 deselectAllCards(ms);
                 ms.c.clearMarbleSelections();
@@ -687,18 +734,16 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                     // Non-playable discard: just end the turn (no skip added per rules)
                     game.endPlayerTurn();
                 } else {
-                    // Track hands before for Queen detection
+                    // Track hands before for Ten/Queen victim detection (exclude human player 0)
                     int[] handsBefore = new int[4];
                     for (int pi = 0; pi < 4; pi++) handsBefore[pi] = game.getPlayers().get(pi).getHand().size();
-                    Colour tenTarget = name.contains("TEN") ? game.getNextPlayerColour() : null;
 
                     game.playPlayerTurn();
                     game.endPlayerTurn();
 
-                    if (name.contains("TEN") && tenTarget != null) {
-                        skippedPlayers.add(tenTarget);
-                    } else if (name.contains("QUEEN")) {
-                        for (int pi = 0; pi < 4; pi++) {
+                    // Detect which opponent lost a card (Ten/Queen discards from opponent hand)
+                    if (name.contains("TEN") || name.contains("QUEEN")) {
+                        for (int pi = 1; pi < 4; pi++) {
                             if (game.getPlayers().get(pi).getHand().size() < handsBefore[pi]) {
                                 skippedPlayers.add(game.getPlayers().get(pi).getColour());
                                 break;
@@ -713,37 +758,63 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 updateFirePit(ms, game, playedName);
                 refreshCardPanels(ms, human);
                 updateGameUI(ms, game, fxColors);
+                syncCpuCardRows(ms, game);
                 ms.c.makeMarbleSelectable();
                 showInfo("Discarded", playedName);
                 handleCPUTurns(ms, game, fxColors);
             } catch (Exception ex) {
-                game.deselectAll();
-                displayAlert2("Cannot Discard", ex.getMessage() != null ? ex.getMessage() : ex.toString());
+                try { game.deselectAll(); } catch (Exception ignored2) {}
+                deselectAllCards(ms);
+                ms.c.clearMarbleSelections();
+                ms.actionPanel.setVisible(false);
+                refreshCardPanels(ms, human);
+                syncBoardFromEngine(ms, game, fxColors);
+                updateGameUI(ms, game, fxColors);
+                syncCpuCardRows(ms, game);
+                ms.c.makeMarbleSelectable();
+                String errMsg = ex.getMessage();
+                displayAlert2("Cannot Discard", errMsg != null && !errMsg.isEmpty() ? errMsg : ex.getClass().getSimpleName());
             }
         });
 
-        // Split button (Seven with 2 marbles)
+        // Split button (Seven with 2 marbles selected)
         ms.splitButton.setOnAction(e -> {
             ArrayList<CircleGrid.CircleCellPair> sel = ms.c.getSelectedMarbles();
-            if (sel.size() < 2) {
-                displayAlert2("Split Error", "Select exactly 2 of your marbles.");
+            if (sel.size() != 2) {
+                displayAlert2("Split Error", "Select exactly 2 of your marbles on the track, then press Apply Split.");
                 return;
             }
             int idx = getSelectedCardIndex(ms);
-            if (idx == -1) { displayAlert2("Error", "Select the Seven card first."); return; }
+            if (idx == -1) {
+                displayAlert2("Error", "Select the Seven card first, then select 2 marbles.");
+                return;
+            }
 
             Player human = game.getPlayers().get(0);
+            if (idx >= human.getHand().size()) {
+                displayAlert2("Error", "Card index out of range — please reselect the Seven card.");
+                return;
+            }
             Card card = human.getHand().get(idx);
             ArrayList<Marble> engineMarbles = resolveEngineMarbles(ms, game, sel);
 
             if (engineMarbles.size() < 2) {
-                displayAlert2("Split Error", "Both marbles must be on the track.");
+                displayAlert2("Split Error", "Both selected marbles must be on the main track (not home or safe zone).");
+                return;
+            }
+
+            // splitDist1 = steps for marble-1; 7 - splitDist1 = steps for marble-2
+            int dist1 = ms.getSplitDistance();          // 1–6
+            int dist2 = 7 - dist1;                      // 6–1
+            if (dist1 < 1 || dist1 > 6 || dist2 < 1) {
+                displayAlert2("Split Error", "Split distances must each be between 1 and 6 (total = 7).");
                 return;
             }
 
             try {
                 game.selectCard(card);
-                game.editSplitDistance(ms.getSplitDistance());
+                // Engine expects the split distance for marble 1 — marble 2 gets 7 - dist1 automatically
+                game.editSplitDistance(dist1);
                 game.selectMarble(engineMarbles.get(0));
                 game.selectMarble(engineMarbles.get(1));
                 game.playPlayerTurn();
@@ -757,12 +828,28 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 updateFirePit(ms, game, playedName);
                 refreshCardPanels(ms, human);
                 updateGameUI(ms, game, fxColors);
+                syncCpuCardRows(ms, game);
                 ms.c.makeMarbleSelectable();
-                showInfo("Played", playedName + " (split)");
+                showInfo("Played", playedName + " (split " + dist1 + "+" + dist2 + ")");
+
+                Colour winner = game.checkWin();
+                if (winner != null) {
+                    displayAlert2("Game Over!", winner + " wins the game!");
+                    return;
+                }
                 handleCPUTurns(ms, game, fxColors);
             } catch (Exception ex) {
-                game.deselectAll();
-                displayAlert2("Invalid Split", ex.getMessage() != null ? ex.getMessage() : ex.toString());
+                try { game.deselectAll(); } catch (Exception ignored2) {}
+                deselectAllCards(ms);
+                ms.c.clearMarbleSelections();
+                ms.actionPanel.setVisible(false);
+                refreshCardPanels(ms, human);
+                syncBoardFromEngine(ms, game, fxColors);
+                updateGameUI(ms, game, fxColors);
+                syncCpuCardRows(ms, game);
+                ms.c.makeMarbleSelectable();
+                String errMsg = ex.getMessage();
+                displayAlert2("Invalid Split", errMsg != null && !errMsg.isEmpty() ? errMsg : ex.getClass().getSimpleName());
             }
         });
     }
@@ -782,34 +869,15 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 .count();
         boolean noMarblesOut = onTrack == 0 && inSafeZoneCard == 0 && game.getPlayers().get(0).getMarbles().size() == 4;
 
-        // If marbles are ONLY in the safe zone and the card rank exceeds remaining steps,
-        // the card cannot be played — force discard.
-        boolean onlySafeZoneMarbles = onTrack == 0 && inSafeZoneCard > 0;
-        if (onlySafeZoneMarbles && card instanceof Standard) {
-            int rank = ((Standard) card).getRank();
-            // Find max steps remaining for any marble in the safe zone (safe zone has 4 cells, indices 0-3)
-            int maxStepsLeft = game.getBoard().getSafeZones().stream()
-                    .filter(sz -> sz.getColour() == humanColourCard)
-                    .flatMap(sz -> {
-                        java.util.List<engine.board.Cell> cells = sz.getCells();
-                        java.util.List<Integer> steps = new java.util.ArrayList<>();
-                        for (int ci = 0; ci < cells.size(); ci++) {
-                            if (cells.get(ci).getMarble() != null) {
-                                steps.add(3 - ci); // cells 0..3, max steps = 3-index
-                            }
-                        }
-                        return steps.stream();
-                    })
-                    .mapToInt(Integer::intValue).max().orElse(0);
-            if (Math.abs(rank) > maxStepsLeft) {
-                ms.c.makeMarbleSelectable();
-                ms.showActionPanel("DISCARD_ANY", false);
-                showInfo(card.getName(), "Card rank too high for safe zone — must discard.");
-                return;
-            }
-        }
+        // noMarblesOut: all 4 marbles still in home, none on track or safe zone.
+        // Only force-discard if the card truly can't do anything (not Ace/King/TEN/QUEEN/JACK/BURNER/SAVER/FIVE/SEVEN).
+        // For all other cases let the engine validate — don't pre-empt.
 
-        if (noMarblesOut && !name.contains("ACE") && !name.contains("KING")) {
+        if (noMarblesOut && !name.contains("ACE") && !name.contains("KING")
+                && !name.contains("TEN") && !name.contains("QUEEN")
+                && !name.contains("JACK") && !name.contains("SEVEN")
+                && !name.contains("BURNER") && !name.contains("SAVER")
+                && !name.contains("FIVE")) {
             ms.c.makeMarbleSelectable();
             ms.showActionPanel("DISCARD_ANY", false);
             showInfo(card.getName(), "No marbles on track — card will be discarded.");
@@ -818,9 +886,24 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             ms.showActionPanel("", false);
             showInfo("Jack", "Select your marble then an opponent's marble to swap.");
         } else if (name.contains("SEVEN")) {
-            ms.c.makeMarbleSelectable();
-            ms.showActionPanel("SEVEN", true);
-            showInfo("Seven", "Select 1 marble (normal) or 2 marbles + split distance.");
+            long sevenOnTrack = ms.c.getCircleCellPairs().stream()
+                    .filter(p -> p.getCircle().getFill().equals(humanFX)).count();
+            if (sevenOnTrack == 0) {
+                // No marbles on track — can't move, must discard
+                ms.c.makeMarbleSelectable();
+                ms.showActionPanel("DISCARD_ANY", false);
+                showInfo("Seven", "No marbles on track — card will be discarded.");
+            } else {
+                ms.c.makeMarbleSelectable();
+                boolean canSplit = sevenOnTrack >= 2;
+                // Reset the split picker to 3+4 each time Seven is selected
+                ms.splitDist1 = 3;
+                ms.adjustSplit(1, 0);
+                ms.showActionPanel("SEVEN", canSplit);
+                showInfo("Seven", canSplit
+                        ? "1 marble + Play = move 7 steps.  OR  Select 2 marbles + set split + Apply Split."
+                        : "Select your marble on track and press Play to move it 7 steps.");
+            }
         } else if (name.contains("BURNER")) {
             // Burner: select only opponent marbles on the main track (not base, not safe, not home)
             ms.c.makeOpponentTrackMarblesSelectable();
