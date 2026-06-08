@@ -213,6 +213,7 @@ public class MainScene {
         // Board
         octagon = createOctagon();
         c = new CircleGrid();
+        c.setMainScene(this);
         c.setScaleX(calcSize(1.4));
         c.setScaleY(calcSize(1));
         c.setTranslateX(calcX(120.0));
@@ -324,8 +325,8 @@ public class MainScene {
             cardPanels[i] = buildCardPanel(i);
 
             // Place each card directly in gameBoard at its own position
-            double cardX = calcX(1100.0 + i * 115.0); // space them 115 apart horizontally
-            double cardY = calcY(750.0);
+            double cardX = calcX(1080.0 + i * 138.0); // space them 138 apart horizontally
+            double cardY = calcY(730.0);
 
             cardPanels[i].setLayoutX(cardX);
             cardPanels[i].setLayoutY(cardY);
@@ -337,139 +338,162 @@ public class MainScene {
      * Builds a single visual card StackPane for slot index.
      */
     public StackPane buildCardPanel(int index) {
-        double cardW = calcSize(102);
-        double cardH = calcSize(148);
+        double cardW = calcSize(130);
+        double cardH = calcSize(190);
 
+        // Card background — crisp parchment with subtle gradient
         Rectangle bg = new Rectangle(cardW, cardH);
-        bg.setArcWidth(calcSize(12));
-        bg.setArcHeight(calcSize(12));
+        bg.setArcWidth(calcSize(16)); bg.setArcHeight(calcSize(16));
         javafx.scene.paint.LinearGradient cardGrad = new javafx.scene.paint.LinearGradient(
             0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
-            new Stop(0.00, Color.web("#F7EFE2")),
-            new Stop(0.35, Color.web("#E9D9C8")),
-            new Stop(0.70, Color.web("#CDB89A")),
-            new Stop(1.00, Color.web("#B89B77")));
+            new Stop(0.00, Color.web("#FDFAF4")),
+            new Stop(0.40, Color.web("#F0E6D0")),
+            new Stop(1.00, Color.web("#D9C9A8")));
         bg.setFill(cardGrad);
-        bg.setStroke(Color.web("#C4A97A"));
-        bg.setStrokeWidth(calcSize(1.5));
+        bg.setStroke(Color.web("#8B6914"));
+        bg.setStrokeWidth(calcSize(2));
+        javafx.scene.effect.DropShadow cardShadow = new javafx.scene.effect.DropShadow();
+        cardShadow.setColor(Color.web("#000000", 0.50)); cardShadow.setRadius(calcSize(14));
+        cardShadow.setOffsetX(calcSize(3)); cardShadow.setOffsetY(calcSize(4));
+        bg.setEffect(cardShadow);
 
-        // Subtle inner border for depth
-        Rectangle inner = new Rectangle(cardW - calcSize(10), cardH - calcSize(12));
+        // Decorative inner frame
+        Rectangle inner = new Rectangle(cardW - calcSize(12), cardH - calcSize(14));
         inner.setArcWidth(calcSize(10)); inner.setArcHeight(calcSize(10));
         inner.setFill(Color.TRANSPARENT);
-        inner.setStroke(Color.web("#F7EFE2", 0.18));
-        inner.setStrokeWidth(calcSize(1));
+        inner.setStroke(Color.web("#C4A97A", 0.40));
+        inner.setStrokeWidth(calcSize(1.2));
         StackPane.setAlignment(inner, Pos.CENTER);
 
-        // Top-left rank label
+        // Corner rank label — top-left
         Label rankLabel = new Label("?");
-        rankLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 18));
-        rankLabel.setTextFill(Color.web("#5B3A23"));
+        rankLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 20));
+        rankLabel.setTextFill(Color.web("#3A1F0A"));
         StackPane.setAlignment(rankLabel, Pos.TOP_LEFT);
-        rankLabel.setTranslateX(calcSize(8));
-        rankLabel.setTranslateY(calcSize(6));
+        rankLabel.setTranslateX(calcSize(9)); rankLabel.setTranslateY(calcSize(7));
 
-        // Centre suit symbol (large)
+        // Bottom-right rank (rotated 180° effect — just another label)
+        Label rankLabelBR = new Label("?");
+        rankLabelBR.setFont(calcFont("Georgia", FontWeight.BOLD, 20));
+        rankLabelBR.setTextFill(Color.web("#3A1F0A"));
+        StackPane.setAlignment(rankLabelBR, Pos.BOTTOM_RIGHT);
+        rankLabelBR.setTranslateX(calcSize(-9)); rankLabelBR.setTranslateY(calcSize(-7));
+        rankLabelBR.setRotate(180);
+
+        // Large centre suit symbol
         Label suitLabel = new Label("♠");
-        suitLabel.setFont(Font.font("Georgia", FontWeight.BOLD, calcSize(36)));
-        suitLabel.setTextFill(Color.web("#5B3A23"));
+        suitLabel.setFont(Font.font("Georgia", FontWeight.BOLD, calcSize(42)));
+        suitLabel.setTextFill(Color.web("#3A1F0A"));
         StackPane.setAlignment(suitLabel, Pos.CENTER);
-        suitLabel.setTranslateY(calcSize(-10));
+        suitLabel.setTranslateY(calcSize(-8));
+
+        // Card name at top centre
+        Label cardNumLabel = new Label("Card " + (index + 1));
+        cardNumLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 10));
+        cardNumLabel.setTextFill(Color.web("#7A5230", 0.85));
+        StackPane.setAlignment(cardNumLabel, Pos.TOP_CENTER);
+        cardNumLabel.setTranslateY(calcSize(7));
 
         // Description at bottom
         Label descLabel = new Label("");
-        descLabel.setFont(calcFont("Georgia", FontWeight.NORMAL, 10));
-        descLabel.setTextFill(Color.web("#3E2B23"));
+        descLabel.setFont(calcFont("Georgia", FontWeight.NORMAL, 9));
+        descLabel.setTextFill(Color.web("#4A2C10"));
         descLabel.setWrapText(true);
-        descLabel.setMaxWidth(cardW - calcSize(10));
+        descLabel.setMaxWidth(cardW - calcSize(14));
         descLabel.setTextAlignment(TextAlignment.CENTER);
         StackPane.setAlignment(descLabel, Pos.BOTTOM_CENTER);
-        descLabel.setTranslateY(calcSize(-6));
+        descLabel.setTranslateY(calcSize(-30));
 
-        // "Card N" placeholder at centre-top
-        Label cardNumLabel = new Label("Card " + (index + 1));
-        cardNumLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 11));
-        cardNumLabel.setTextFill(Color.web("#7A5A43"));
-        StackPane.setAlignment(cardNumLabel, Pos.TOP_CENTER);
-        cardNumLabel.setTranslateY(calcSize(6));
-
-        // Compose panel with inner border on top
-        StackPane panel = new StackPane(bg, inner, rankLabel, suitLabel, descLabel, cardNumLabel);
+        StackPane panel = new StackPane(bg, inner, rankLabel, rankLabelBR, suitLabel, cardNumLabel, descLabel);
         panel.setPrefSize(cardW, cardH);
         panel.setMaxSize(cardW, cardH);
+        panel.setUserData(new Label[]{rankLabel, suitLabel, descLabel, cardNumLabel, rankLabelBR});
 
-        // Store sub-labels as userData list so Main can update them
-        panel.setUserData(new Label[]{rankLabel, suitLabel, descLabel, cardNumLabel});
-
-        // Visual selection effect: clicking the panel selects the card
         final int idx = index;
         panel.setOnMouseClicked(e -> {
             if (!panel.isVisible()) return;
             boolean wasSelected = checkBoxes[idx].isSelected();
-            // Deselect all others
-            for (int k = 0; k < 4; k++) {
-                checkBoxes[k].setSelected(false);
-                highlightCard(k, false);
-            }
-            // Toggle this one
-            if (!wasSelected) {
-                checkBoxes[idx].setSelected(true);
-                highlightCard(idx, true);
-            }
+            for (int k = 0; k < 4; k++) { checkBoxes[k].setSelected(false); highlightCard(k, false); }
+            if (!wasSelected) { checkBoxes[idx].setSelected(true); highlightCard(idx, true); }
         });
-
-        // Hover effect
         panel.setOnMouseEntered(e -> {
             if (panel.isVisible() && !checkBoxes[idx].isSelected()) {
-                bg.setStroke(Color.web("#E8C97A"));
-                bg.setStrokeWidth(calcSize(2.5));
-                bg.setEffect(new javafx.scene.effect.DropShadow(calcSize(8), Color.web("#000000", 0.45)));
+                panel.setTranslateY(calcSize(-6));
+                bg.setStroke(Color.web("#b0977d"));
+                bg.setStrokeWidth(calcSize(3));
+                javafx.scene.effect.DropShadow glow = new javafx.scene.effect.DropShadow();
+                glow.setColor(Color.web("#b0977d", 0.7)); glow.setRadius(calcSize(16));
+                glow.setOffsetX(0); glow.setOffsetY(calcSize(2));
+                bg.setEffect(glow);
             }
         });
         panel.setOnMouseExited(e -> {
             if (!checkBoxes[idx].isSelected()) {
-                bg.setStroke(Color.web("#C4A97A"));
-                bg.setStrokeWidth(calcSize(1.5));
-                bg.setEffect(null);
+                panel.setTranslateY(0);
+                bg.setStroke(Color.web("#8B6914")); bg.setStrokeWidth(calcSize(2));
+                bg.setEffect(cardShadow);
             }
         });
-
         return panel;
     }
 
     /** Highlights or un-highlights the card panel at the given index. */
     public void highlightCard(int index, boolean selected) {
         if (cardPanels[index] == null) return;
-        Rectangle bg = (Rectangle) cardPanels[index].getChildren().get(0);
+        StackPane panel = cardPanels[index];
+        Rectangle bg = (Rectangle) panel.getChildren().get(0);
         if (selected) {
-            bg.setStroke(Color.GOLD);
-            bg.setStrokeWidth(calcSize(4));
-            bg.setFill(Color.web("#fffde7"));
+            panel.setTranslateY(calcSize(-10));
+            bg.setStroke(Color.web("#b1976f"));
+            bg.setStrokeWidth(calcSize(3.5));
+            javafx.scene.paint.LinearGradient selGrad = new javafx.scene.paint.LinearGradient(
+                0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
+                new Stop(0.0, Color.web("#FFFDE7")),
+                new Stop(1.0, Color.web("#FFF9C4")));
+            bg.setFill(selGrad);
+            javafx.scene.effect.DropShadow selGlow = new javafx.scene.effect.DropShadow();
+            selGlow.setColor(Color.web("#b0977d", 0.85)); selGlow.setRadius(calcSize(20));
+            selGlow.setSpread(0.15);
+            bg.setEffect(selGlow);
         } else {
-            bg.setStroke(Color.web("#B8A080"));
-            bg.setStrokeWidth(calcSize(1.5));
-            bg.setFill(Color.web("#FEFDF8"));
+            panel.setTranslateY(0);
+            javafx.scene.paint.LinearGradient normalGrad = new javafx.scene.paint.LinearGradient(
+                0, 0, 0, 1, true, CycleMethod.NO_CYCLE,
+                new Stop(0.00, Color.web("#FDFAF4")),
+                new Stop(0.40, Color.web("#F0E6D0")),
+                new Stop(1.00, Color.web("#D9C9A8")));
+            bg.setFill(normalGrad);
+            bg.setStroke(Color.web("#8B6914")); bg.setStrokeWidth(calcSize(2));
+            javafx.scene.effect.DropShadow normalShadow = new javafx.scene.effect.DropShadow();
+            normalShadow.setColor(Color.web("#000000", 0.50)); normalShadow.setRadius(calcSize(14));
+            normalShadow.setOffsetX(calcSize(3)); normalShadow.setOffsetY(calcSize(4));
+            bg.setEffect(normalShadow);
         }
     }
 
  
     public void updateCardPanel(int index, String rankStr, String suitSymbol,
             Color suitColor, String description, String cardTitle) {
-		if (cardPanels[index] == null) return;
-		Label[] labels = (Label[]) cardPanels[index].getUserData();
-		labels[0].setText(rankStr);
-		labels[0].setTextFill(suitColor);
-		labels[1].setText(suitSymbol);
-		labels[1].setTextFill(suitColor);
-		labels[2].setText(description);
-		labels[3].setText(cardTitle);
-		labels[3].setTextFill(suitColor.equals(Color.RED) ? Color.CRIMSON : Color.DARKSLATEBLUE);
-		
-		cardPanels[index].setVisible(true);
-		cardPanels[index].setOpacity(1.0);
-		checkBoxes[index].setSelected(false);
-		highlightCard(index, false);
-		}
+        if (cardPanels[index] == null) return;
+        Label[] labels = (Label[]) cardPanels[index].getUserData();
+        labels[0].setText(rankStr);
+        labels[0].setTextFill(suitColor);
+        labels[1].setText(suitSymbol);
+        labels[1].setTextFill(suitColor);
+        labels[2].setText(description);
+        labels[3].setText(cardTitle);
+        labels[3].setTextFill(suitColor.equals(Color.RED) || suitColor.equals(Color.CRIMSON)
+                ? Color.web("#8B0000") : Color.web("#1A237E"));
+        // Sync bottom-right rank label (index 4)
+        if (labels.length > 4 && labels[4] != null) {
+            labels[4].setText(rankStr);
+            labels[4].setTextFill(suitColor);
+        }
+        cardPanels[index].setVisible(true);
+        cardPanels[index].setOpacity(1.0);
+        checkBoxes[index].setSelected(false);
+        highlightCard(index, false);
+    }
 
     /** Hides a card panel (card has been played). */
     public void hideCardPanel(int index) {
@@ -484,7 +508,7 @@ public class MainScene {
     private void buildActionPanel(AnchorPane gameBoard) {
         actionPanel = new VBox(calcSize(10));
         actionPanel.setLayoutX(calcX(1500.0));
-        actionPanel.setLayoutY(calcY(420.0));
+        actionPanel.setLayoutY(calcY(510.0));
         actionPanel.setAlignment(Pos.CENTER_LEFT);
         actionPanel.setPadding(new Insets(calcSize(12)));
         actionPanel.setBackground(new Background(new BackgroundFill(
@@ -502,9 +526,23 @@ public class MainScene {
 
         // ── Discard button (Ten / Queen / no-marbles-out) ──────────────────────
         discardButton = new Button("\uD83D\uDDD1  Discard Card");
-        styleWalnutButton(discardButton, "#7B1F1F", "#4A0F0F", "#C8625A");
         discardButton.setPrefHeight(calcSize(44));
         discardButton.setPrefWidth(calcSize(270));
+        String discBase =
+            "-fx-background-color: linear-gradient(to bottom, #7B1F1F, #4A0F0F);" +
+            "-fx-text-fill: #F5C6C6; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+            "-fx-font-size: " + (int)calcSize(13) + "px; -fx-background-radius: 26;" +
+            "-fx-border-color: #C85A5A; -fx-border-radius: 26; -fx-border-width: 2;" +
+            "-fx-effect: dropshadow(gaussian, rgba(180,60,60,0.4), 10, 0, 0, 3);";
+        String discHover =
+            "-fx-background-color: linear-gradient(to bottom, #A52A2A, #6B1010);" +
+            "-fx-text-fill: #FFDDDD; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+            "-fx-font-size: " + (int)calcSize(13) + "px; -fx-background-radius: 26;" +
+            "-fx-border-color: #FF8080; -fx-border-radius: 26; -fx-border-width: 2.5;" +
+            "-fx-effect: dropshadow(gaussian, rgba(220,80,80,0.85), 20, 0, 0, 6);";
+        discardButton.setStyle(discBase);
+        discardButton.setOnMouseEntered(e -> discardButton.setStyle(discHover));
+        discardButton.setOnMouseExited(e -> discardButton.setStyle(discBase));
         discardButton.setVisible(false);
         discardButton.setManaged(false);
 
@@ -526,35 +564,34 @@ public class MainScene {
         vsLabel.setTextFill(Color.web("#C4A97A"));
         vsLabel.setAlignment(Pos.CENTER);
 
-        // ✂ Apply Split button
-    splitButton = new Button("✂  Apply Split");
+    splitButton = new Button("✂ Split");
     String splitBase =
-        "-fx-background-color: linear-gradient(to bottom, #1A4A2A, #0A2010);" +
-        "-fx-text-fill: #C8F0D0;" +
+        "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+        "-fx-text-fill: #E8D5B5;" +
         "-fx-font-weight: bold;" +
         "-fx-font-family: 'Georgia';" +
-        "-fx-font-size: " + (int) calcSize(14) + "px;" +
-        "-fx-background-radius: 14;" +
-        "-fx-border-color: #4CAF50;" +
-        "-fx-border-radius: 14;" +
-        "-fx-border-width: 2;" +
-        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.65), 12, 0, 2, 5);";
+        "-fx-font-size: " + (int) calcSize(12) + "px;" +
+        "-fx-background-radius: 26;" +
+        "-fx-border-color: #f1dbb3;" +
+        "-fx-border-radius: 26;" +
+        "-fx-border-width: 1.5;" +
+        "-fx-effect: dropshadow(gaussian, rgba(212,163,115,0.3), 8, 0, 0, 2);";
     String splitHover =
-        "-fx-background-color: linear-gradient(to bottom, #4CAF50, #2E7D32);" +
-        "-fx-text-fill: #FFFDE7;" +
+        "-fx-background-color: linear-gradient(to bottom, #6B4226, #3E2720);" +
+        "-fx-text-fill: #FFF2DF;" +
         "-fx-font-weight: bold;" +
         "-fx-font-family: 'Georgia';" +
-        "-fx-font-size: " + (int) calcSize(14) + "px;" +
-        "-fx-background-radius: 14;" +
-        "-fx-border-color: #A5D6A7;" +
-        "-fx-border-radius: 14;" +
+        "-fx-font-size: " + (int) calcSize(12) + "px;" +
+        "-fx-background-radius: 26;" +
+        "-fx-border-color: #f1dbb3;" +
+        "-fx-border-radius: 26;" +
         "-fx-border-width: 2;" +
-        "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 16, 0, 2, 6);";
+        "-fx-effect: dropshadow(gaussian, rgba(240,198,138,0.8), 18, 0, 0, 6);";
     splitButton.setStyle(splitBase);
     splitButton.setOnMouseEntered(e -> splitButton.setStyle(splitHover));
     splitButton.setOnMouseExited(e -> splitButton.setStyle(splitBase));
-    splitButton.setPrefHeight(calcSize(44));
-    splitButton.setPrefWidth(calcSize(160));
+    splitButton.setPrefHeight(calcSize(34));
+    splitButton.setPrefWidth(calcSize(100));
 
         // picker: [col1] [+] [col2]   and apply button below
         HBox circleRow = new HBox(calcSize(10), marble1Col, vsLabel, marble2Col);
@@ -718,6 +755,7 @@ public class MainScene {
                     actionPanel.setVisible(true);
                 }
                 // canSplit=false means only 1 marble on track → play via Play button, no panel needed
+                // When canSplit=true the panel is shown so user can pick 2 marbles and apply split
                 break;
             default:
                 // leave everything hidden
@@ -791,7 +829,7 @@ public class MainScene {
         controlGrid.setHgap(calcSize(12));
 
         actionPanel.setLayoutX(calcX(1500.0));
-        actionPanel.setLayoutY(calcY(420.0));
+        actionPanel.setLayoutY(calcY(510.0));
 
         remainingCards1.setLayoutX(calcX(1120.0));
         remainingCards1.setLayoutY(calcY(14.0));
@@ -808,72 +846,82 @@ public class MainScene {
         // ── Keep all 4 card panels fixed at their original positions ──
         for (int i = 0; i < 4; i++) {
             if (cardPanels[i] != null) {
-                cardPanels[i].setLayoutX(calcX(1100.0 + i * 115.0));
-                cardPanels[i].setLayoutY(calcY(750.0));
+                cardPanels[i].setLayoutX(calcX(1080.0 + i * 138.0));
+                cardPanels[i].setLayoutY(calcY(730.0));
             }
         }
 
         playButton.setLayoutX(calcX(1500.0));
-        playButton.setLayoutY(calcY(350.0));
+        playButton.setLayoutY(calcY(430.0));
         playButton.setPrefHeight(calcSize(50.0));
         playButton.setPrefWidth(calcSize(145.0));
-        playButton.setFont(calcFont("Georgia", FontWeight.BOLD, 20.0));
+        playButton.setFont(calcFont("Georgia", FontWeight.BOLD, 16.5));
 
         if (skipButton != null) {
             skipButton.setLayoutX(calcX(1667.0));
-            skipButton.setLayoutY(calcY(350.0));
+            skipButton.setLayoutY(calcY(430.0));
             skipButton.setPrefHeight(calcSize(50.0));
             skipButton.setPrefWidth(calcSize(145.0));
-            skipButton.setFont(calcFont("Georgia", FontWeight.BOLD, 18.0));
+            skipButton.setFont(calcFont("Georgia", FontWeight.BOLD, 16.5));
         }
 
         if (cpu1CardRow != null) { cpu1CardRow.setLayoutX(calcX(55.0));   cpu1CardRow.setLayoutY(calcY(450.0)); }
         if (cpu2CardRow != null) { cpu2CardRow.setLayoutX(calcX(595.0));  cpu2CardRow.setLayoutY(calcY(-50.0)); }
         if (cpu3CardRow != null) { cpu3CardRow.setLayoutX(calcX(1130.0)); cpu3CardRow.setLayoutY(calcY(450.0)); }
 
-        currentPlayerLabel.setLayoutX(calcX(1250.0));
+        currentPlayerLabel.setLayoutX(calcX(1500.0));
         currentPlayerLabel.setLayoutY(calcY(150.0));
-        currentPlayerLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 22));
+        currentPlayerLabel.setPrefWidth(calcSize(310.0));
+        currentPlayerLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 16));
 
-        nextPlayerLabel.setLayoutX(calcX(1250.0));
-        nextPlayerLabel.setLayoutY(calcY(200.0));
-        nextPlayerLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 22));
+        nextPlayerLabel.setLayoutX(calcX(1500.0));
+        nextPlayerLabel.setLayoutY(calcY(196.0));
+        nextPlayerLabel.setPrefWidth(calcSize(310.0));
+        nextPlayerLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 16));
 
         if (deckShadow1 != null) {
             deckShadow1.setX(calcX(1500.0) + calcSize(6));
-            deckShadow1.setY(calcY(76.0) + calcSize(6));
+            deckShadow1.setY(calcY(196.0) + calcSize(6));
             deckShadow1.setWidth(calcSize(310.0));
             deckShadow1.setHeight(calcSize(200.0));
         }
         if (deckShadow2 != null) {
             deckShadow2.setX(calcX(1500.0) + calcSize(3));
-            deckShadow2.setY(calcY(130.0) + calcSize(3));
+            deckShadow2.setY(calcY(200.0) + calcSize(3));
             deckShadow2.setWidth(calcSize(310.0));
             deckShadow2.setHeight(calcSize(200.0));
         }
 
         deckRect.setX(calcX(1500.0));
-        deckRect.setY(calcY(130.0));
+        deckRect.setY(calcY(200.0));
         deckRect.setWidth(calcSize(310.0));
         deckRect.setHeight(calcSize(200.0));
 
         deckLabel.setLayoutX(calcX(1500.0));
-        deckLabel.setLayoutY(calcY(130.0));
+        deckLabel.setLayoutY(calcY(200.0));
         deckLabel.setPrefWidth(calcSize(310.0));
         deckLabel.setPrefHeight(calcSize(130.0));
         deckLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 18.0));
 
         deckRemainingLabel.setLayoutX(calcX(1500.0));
-        deckRemainingLabel.setLayoutY(calcY(230.0));
+        deckRemainingLabel.setLayoutY(calcY(300.0));
         deckRemainingLabel.setPrefWidth(calcSize(310.0));
         deckRemainingLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 18.0));
 
+        if (helpButton != null) {
+            helpButton.setLayoutX(calcX(1500.0));
+            helpButton.setLayoutY(calcY(30.0));
+            helpButton.setPrefHeight(calcSize(48.0));
+            helpButton.setPrefWidth(calcSize(310.0));
+            helpButton.setFont(calcFont("Georgia", FontWeight.BOLD, 15.0));
+        }
+
         miscLabel.setLayoutX(calcX(1500.0));
-        miscLabel.setLayoutY(calcY(30.0));
-        miscLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 14.0));  // ← updated
+        miscLabel.setLayoutY(calcY(92.0));
+        miscLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 12.0));
         miscLabel.setPrefWidth(calcSize(310));
-        miscLabel.setPrefHeight(calcSize(90));
-        miscLabel.setPadding(new Insets(calcSize(12), calcSize(14), calcSize(12), calcSize(14)));
+        miscLabel.setPrefHeight(calcSize(50));
+        miscLabel.setPadding(new Insets(calcSize(8), calcSize(12), calcSize(8), calcSize(12)));
 
         miscCircles[0].setCenterX(calcX(780.0));
         miscCircles[0].setCenterY(calcY(50.0));
@@ -1128,79 +1176,56 @@ public class MainScene {
     }
 
     public Button createSkipButton() {
-        Button button = new Button(" ⏭ Skip Turn");
+        Button button = new Button("▶▶ Skip Turn");
         button.setLayoutX(calcX(1667.0));
-        button.setLayoutY(calcY(350.0));
+        button.setLayoutY(calcY(430.0));
         button.setMnemonicParsing(false);
         button.setPrefHeight(calcSize(50.0));
         button.setPrefWidth(calcSize(145.0));
-        button.setFont(calcFont("Georgia", FontWeight.BOLD, 18));
-
-        String baseStyle =
-        	    "-fx-background-color: linear-gradient(to bottom, #38200a, #3E2723);" +
-        	    "-fx-text-fill: #FAF3E0;" +
-        	    "-fx-font-weight: bold;" +
-        	    "-fx-font-family: 'Georgia';" +
-        	    "-fx-font-size: " + (int) calcSize(18) + "px;" +
-        	    "-fx-background-radius: 14;" +
-        	    "-fx-border-color: #372412;" +
-        	    "-fx-border-radius: 14;" +
-        	    "-fx-border-width: 2;" +
-        	    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.65), 12, 0, 2, 5);";
-
-        String hoverStyle =
-        	    "-fx-background-color: linear-gradient(to bottom, #8D6E63, #4E342E);" +
-        	    "-fx-text-fill: #FFFDE7;" +
-        	    "-fx-font-weight: bold;" +
-        	    "-fx-font-family: 'Georgia';" +
-        	    "-fx-font-size: " + (int) calcSize(18) + "px;" +
-        	    "-fx-background-radius: 14;" +
-        	    "-fx-border-color: #D7CCC8;" +
-        	    "-fx-border-radius: 14;" +
-        	    "-fx-border-width: 2;" +
-        	    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 14, 0, 2, 6);";
-        	
-        button.setStyle(baseStyle);
-        button.setOnMouseEntered(e -> button.setStyle(hoverStyle));
-        button.setOnMouseExited(e -> button.setStyle(baseStyle));
-
-        return button;
+        button.setFont(calcFont("Georgia", FontWeight.BOLD, 16.5));
+        String base =
+                "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+                "-fx-text-fill: #E8D5B5; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int)calcSize(16.5) + "px; -fx-background-radius: 26;" +
+                "-fx-border-color: #f1dbb3; -fx-border-radius: 26; -fx-border-width: 2;" +
+                "-fx-effect: dropshadow(gaussian, rgba(212, 163, 115, 0.3), 10, 0, 0, 2);";
+        String hover =
+                "-fx-background-color: linear-gradient(to bottom, #6B4226, #3E2720);" +
+                "-fx-text-fill: #FFF2DF; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int)calcSize(16.5) + "px; -fx-background-radius: 26;" +
+                "-fx-border-color: #f1dbb3; -fx-border-radius: 26; -fx-border-width: 2.5;" +
+                "-fx-effect: dropshadow(gaussian, rgba(240, 198, 138, 0.85), 25, 0, 0, 8);";
+            button.setStyle(base);
+            button.setOnMouseEntered(e -> button.setStyle(hover));
+            button.setOnMouseExited(e -> button.setStyle(base));
+            return button;
     }
 
     public Button createHelpButton() {
-        Button button = new Button("❓ Help");
+        Button button = new Button("Rules & Help");
         button.setLayoutX(calcX(1500.0));
-        button.setLayoutY(calcY(280.0));
+        button.setLayoutY(calcY(30.0));
         button.setMnemonicParsing(false);
-        button.setPrefHeight(calcSize(40.0));
-        button.setPrefWidth(calcSize(120.0));
-        button.setFont(calcFont("Georgia", FontWeight.BOLD, 14));
+        button.setPrefHeight(calcSize(48.0));
+        button.setPrefWidth(calcSize(310.0));
+        button.setFont(calcFont("Georgia", FontWeight.BOLD, 15));
 
-        String baseStyle =
-                "-fx-background-color: linear-gradient(to bottom, #2E7D32, #1B5E20);" +
-                "-fx-text-fill: #FAF3E0;" +
-                "-fx-font-weight: bold;" +
-                "-fx-font-family: 'Georgia';" +
-                "-fx-font-size: " + (int) calcSize(14) + "px;" +
-                "-fx-background-radius: 10;" +
-                "-fx-border-color: #2E7D32;" +
-                "-fx-border-radius: 10;" +
-                "-fx-border-width: 1.5;";
+        String base =
+                "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+                "-fx-text-fill: #E8D5B5; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int)calcSize(18) + "px; -fx-background-radius: 26;" +
+                "-fx-border-color: #f1dbb3; -fx-border-radius: 26; -fx-border-width: 2;" +
+                "-fx-effect: dropshadow(gaussian, rgba(212, 163, 115, 0.3), 10, 0, 0, 2);";
+        String hover =
+                "-fx-background-color: linear-gradient(to bottom, #6B4226, #3E2720);" +
+                "-fx-text-fill: #FFF2DF; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int)calcSize(18) + "px; -fx-background-radius: 26;" +
+                "-fx-border-color: #f1dbb3; -fx-border-radius: 26; -fx-border-width: 2.5;" +
+                "-fx-effect: dropshadow(gaussian, rgba(240, 198, 138, 0.85), 25, 0, 0, 8);";
 
-        String hoverStyle =
-                "-fx-background-color: linear-gradient(to bottom, #66BB6A, #2E7D32);" +
-                "-fx-text-fill: #FFFDE7;" +
-                "-fx-font-weight: bold;" +
-                "-fx-font-family: 'Georgia';" +
-                "-fx-font-size: " + (int) calcSize(14) + "px;" +
-                "-fx-background-radius: 10;" +
-                "-fx-border-color: #D7CCC8;" +
-                "-fx-border-radius: 10;" +
-                "-fx-border-width: 1.5;";
-
-        button.setStyle(baseStyle);
-        button.setOnMouseEntered(e -> button.setStyle(hoverStyle));
-        button.setOnMouseExited(e -> button.setStyle(baseStyle));
+        button.setStyle(base);
+        button.setOnMouseEntered(e -> button.setStyle(hover));
+        button.setOnMouseExited(e -> button.setStyle(base));
 
         button.setOnAction(e -> showHelpDialog());
         return button;
@@ -1209,38 +1234,52 @@ public class MainScene {
     private void showHelpDialog() {
         Stage dlg = new Stage();
         dlg.initModality(Modality.APPLICATION_MODAL);
-        dlg.setTitle("About Jackaroo — Overview & Help");
+        dlg.setTitle("Jackaroo — Help");
 
         String desc = "Jackaroo — Quick Game Overview:\n\n" +
-                "Players take turns playing cards to move marbles around the board. " +
-                "Special cards have effects: Ten/Queen may discard a card from another player and skip their turn; " +
-                "Seven can split 7 steps between two marbles; Ace/King can field marbles from Home.\n\n" +
-                "Use the Play and Skip buttons to play or discard. The board shows your marbles (bottom-left) and CPUs around the board.\n\n" +
-                "Click 'Rules' below for full rules and card reference.";
+                "Move all 4 of your marbles clockwise: Home Zone → Base Cell → track → Safe Zone.\n" +
+                "Field marbles using Ace or King. Base Cells sit 25 steps apart; Safe Zone Entry\n" +
+                "cells are 2 steps before each Base and block entry when occupied.\n" +
+                "8 hidden trap cells are scattered on the track — landing destroys your marble!\n\n" +
+                "Ten skips the NEXT player; Queen skips a RANDOM player; King destroys all marbles\n" +
+                "in its path; Seven splits 7 steps between two marbles; Five moves any marble on track.\n\n" +
+                "Click 'Full Rules' below for the complete card-by-card reference.";
 
         Label descLbl = new Label(desc);
         descLbl.setWrapText(true);
-        descLbl.setFont(calcFont(14));
-        descLbl.setMaxWidth(calcSize(420));
+        descLbl.setFont(calcFont("Georgia", null, 13));
+        descLbl.setTextFill(Color.web("#F5E6C8"));
+        descLbl.setMaxWidth(calcSize(440));
 
-        Button rulesBtn = new Button("📜 Rules");
-        Button settingsBtn = new Button("⚙ Settings");
-        styleWalnutButton(rulesBtn, "#2B3A67", "#14213D", "#5C6BC0");
-        styleWalnutButton(settingsBtn, "#5D4037", "#3E2723", "#372412");
+        Button rulesBtn = new Button("Full Rules");
+        Button settingsBtn = new Button("Settings");
+        styleWalnutButton(rulesBtn, "#5C3A1A", "#372412", "#C4A97A");
+        styleWalnutButton(settingsBtn, "#3E2723", "#2A1A0E", "#8D6E63");
+        rulesBtn.setPrefWidth(calcSize(170));
+        settingsBtn.setPrefWidth(calcSize(140));
         rulesBtn.setOnAction(ev -> showRulesDialog());
         settingsBtn.setOnAction(ev -> showSettingsDialog());
 
         HBox btnRow = new HBox(calcSize(12), settingsBtn, rulesBtn);
         btnRow.setAlignment(Pos.CENTER);
 
-        VBox v = new VBox(calcSize(12), descLbl, btnRow);
-        v.setPadding(new Insets(calcSize(12)));
+        VBox v = new VBox(calcSize(16), descLbl, btnRow);
+        v.setPadding(new Insets(calcSize(22), calcSize(24), calcSize(20), calcSize(24)));
         v.setAlignment(Pos.CENTER_LEFT);
+        v.setBackground(new Background(new BackgroundFill(
+                Color.web("#1C0F05"), new CornerRadii(calcSize(12)), Insets.EMPTY)));
+        v.setBorder(new Border(new BorderStroke(
+                Color.web("#C4A97A"), BorderStrokeStyle.SOLID,
+                new CornerRadii(calcSize(12)), new BorderWidths(calcSize(1.5)))));
+        javafx.scene.effect.DropShadow ds = new javafx.scene.effect.DropShadow();
+        ds.setColor(Color.web("#000000", 0.7)); ds.setRadius(calcSize(18));
+        v.setEffect(ds);
 
         Scene s = new Scene(v);
+        s.setFill(Color.TRANSPARENT);
         dlg.setScene(s);
-        dlg.setWidth(calcSize(480));
-        dlg.setHeight(calcSize(320));
+        dlg.setWidth(calcSize(500));
+        dlg.setHeight(calcSize(360));
         dlg.showAndWait();
     }
 
@@ -1250,54 +1289,164 @@ public class MainScene {
         dlg.setTitle("Full Rules — Jackaroo");
 
         String rules =
-            "Basic Rules:\n" +
-            "- Each player has 4 marbles in Home. Goal: move all marbles around the track into your Safe Zone.\n" +
-            "- Play cards to move your marbles or use special actions (see card reference).\n\n" +
-            "Card highlights:\n" +
-            "- Ace: Field a marble from Home or move 1 step.\n" +
-            "- Seven: Split 7 steps between two marbles (select 2 marbles on track).\n" +
-            "- Ten: Discard an opponent's card and skip their next turn, or move 10 steps.\n" +
-            "- Queen: Discard a random opponent card and skip their next turn, or move 12 steps.\n" +
-            "- Jack: Swap or move 11 steps.\n" +
-            "- Burners/Savers: Special wild cards (see in-game card descriptions).\n\n" +
-            "Gameplay:\n" +
-            "- Select a card from your hand, select marbles (one or two for Seven), then press Play.\n" +
-            "- If you cannot play, use Skip to discard a card and end your turn.\n" +
-            "- The game automatically advances CPU turns after you play.\n\n" +
-            "This in-game Rules panel gives a quick reference. For the full card CSV use the project files.";
+            "Objective: Move all 4 marbles from Home Zone → Safe Zone before opponents.\n\n" +
+            "Board Zones:\n" +
+            "- Home Zone: Marbles start here. Inactive — cannot move or be swapped.\n" +
+            "- Base Cell: Starting position on the track (positions 0, 25, 50, 75). Fielding\n" +
+            "  places your marble here. A marble on its own Base Cell blocks others passing.\n" +
+            "- Safe Zone Entry: The cell 2 steps before a Base Cell. A marble here blocks\n" +
+            "  all marbles from entering that player's Safe Zone.\n" +
+            "- Safe Zone: 4 private cells. Entry requires exact count. Once in, cannot leave.\n" +
+            "- Trap Cells: 8 hidden traps placed randomly. Landing destroys your marble and\n" +
+            "  moves the trap to a new random cell.\n\n" +
+            "Movement Rules:\n" +
+            "- Marbles travel CLOCKWISE. Cannot bypass more than 1 marble in the path.\n" +
+            "- Cannot bypass or land on your own marbles.\n" +
+            "- Cannot pass a marble sitting on its own Base Cell.\n\n" +
+            "Cards:\n" +
+            "- Ace (1): Field a marble from Home OR move 1 step.\n" +
+            "- Two–Three, Six, Eight–Nine: Standard move by rank.\n" +
+            "- Four: Move 4 steps BACKWARDS.\n" +
+            "- Five: Move ANY marble on track 5 steps (yours or opponent's).\n" +
+            "- Seven: Move 7 steps, split between 2 of your marbles (1–6 + 6–1).\n" +
+            "- Jack (11): Swap your marble with an opponent's on track (not Base cells).\n" +
+            "  OR move 11 steps.\n" +
+            "- Queen (12): Discard a card from a RANDOM opponent and skip their turn.\n" +
+            "  OR move 12 steps.\n" +
+            "- King (13): Field a marble from Home OR move 13 steps destroying ALL\n" +
+            "  marbles in the path. Bypasses self-blocking, path blockage, and entry rules.\n" +
+            "- Ten: Discard a card from the NEXT player and skip their turn. OR move 10.\n" +
+            "- Burner (Wild): Send any opponent marble on track (not Base) back to Home.\n" +
+            "- Saver (Wild): Send one of your own marbles on track to a random empty\n" +
+            "  Safe Zone cell.\n\n" +
+            "Winning: First player to fill all 4 Safe Zone cells wins.";
 
         Label rulesLbl = new Label(rules);
         rulesLbl.setWrapText(true);
-        rulesLbl.setFont(calcFont(13));
-        rulesLbl.setMaxWidth(calcSize(560));
+        rulesLbl.setFont(calcFont("Georgia", null, 13));
+        rulesLbl.setTextFill(Color.web("#F5E6C8"));
+        rulesLbl.setMaxWidth(calcSize(590));
 
-        VBox v = new VBox(calcSize(10), rulesLbl);
-        v.setPadding(new Insets(calcSize(12)));
+        javafx.scene.control.ScrollPane scroll = new javafx.scene.control.ScrollPane(rulesLbl);
+        scroll.setFitToWidth(true);
+        scroll.setStyle("-fx-background: #1C0F05; -fx-background-color: #1C0F05; -fx-border-color: transparent;");
+        scroll.setPrefHeight(calcSize(430));
+
+        VBox v = new VBox(calcSize(10), scroll);
+        v.setPadding(new Insets(calcSize(18), calcSize(22), calcSize(18), calcSize(22)));
+        v.setBackground(new Background(new BackgroundFill(
+                Color.web("#1C0F05"), new CornerRadii(calcSize(12)), Insets.EMPTY)));
+        v.setBorder(new Border(new BorderStroke(
+                Color.web("#C4A97A"), BorderStrokeStyle.SOLID,
+                new CornerRadii(calcSize(12)), new BorderWidths(calcSize(1.5)))));
+        javafx.scene.effect.DropShadow dsr = new javafx.scene.effect.DropShadow();
+        dsr.setColor(Color.web("#000000", 0.7)); dsr.setRadius(calcSize(18));
+        v.setEffect(dsr);
 
         Scene s = new Scene(v);
+        s.setFill(Color.TRANSPARENT);
         dlg.setScene(s);
-        dlg.setWidth(calcSize(640));
-        dlg.setHeight(calcSize(480));
+        dlg.setWidth(calcSize(660));
+        dlg.setHeight(calcSize(520));
         dlg.showAndWait();
     }
 
     private void showSettingsDialog() {
         Stage dlg = new Stage();
         dlg.initModality(Modality.APPLICATION_MODAL);
-        dlg.setTitle("Settings");
+        dlg.setTitle("⚙  Settings — Jackaroo");
 
-        CheckBox hints = new CheckBox("Enable move hints (visual)");
-        CheckBox fastCPU = new CheckBox("Faster CPU turns");
-        hints.setSelected(true);
-        fastCPU.setSelected(false);
+        // Title header
+        Label titleLbl = new Label("⚙  Game Settings");
+        titleLbl.setFont(calcFont("Georgia", FontWeight.BOLD, 20));
+        titleLbl.setTextFill(Color.web("#E8C97A"));
+        titleLbl.setAlignment(Pos.CENTER);
+        titleLbl.setMaxWidth(Double.MAX_VALUE);
 
-        VBox v = new VBox(calcSize(12), hints, fastCPU);
-        v.setPadding(new Insets(calcSize(12)));
+        // Divider
+        javafx.scene.shape.Rectangle divider = new javafx.scene.shape.Rectangle();
+        divider.setHeight(2);
+        divider.setWidth(calcSize(320));
+        divider.setFill(Color.web("#C4A97A", 0.5));
+
+        // Checkbox helpers
+        java.util.function.BiFunction<String, Boolean, CheckBox> mkCb = (text, sel) -> {
+            CheckBox cb = new CheckBox(text);
+            cb.setSelected(sel);
+            cb.setStyle(
+                "-fx-text-fill: #F5E6C8;" +
+                "-fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int)calcSize(13) + "px;" +
+                "-fx-mark-color: #E8C97A;" +
+                "-fx-box-border-color: #C4A97A;"
+            );
+            cb.setPadding(new Insets(calcSize(4), 0, calcSize(4), 0));
+            return cb;
+        };
+
+        // Settings options
+        Label audioHdr = new Label("AUDIO");
+        audioHdr.setFont(calcFont("Georgia", FontWeight.BOLD, 12));
+        audioHdr.setTextFill(Color.web("#C4A97A", 0.7));
+        CheckBox soundFx = mkCb.apply("Sound Effects", true);
+        CheckBox music   = mkCb.apply("Background Music", false);
+
+        Label gameplayHdr = new Label("GAMEPLAY");
+        gameplayHdr.setFont(calcFont("Georgia", FontWeight.BOLD, 12));
+        gameplayHdr.setTextFill(Color.web("#C4A97A", 0.7));
+        CheckBox hints   = mkCb.apply("Show Move Hints", true);
+        CheckBox fastCPU = mkCb.apply("Fast CPU Turns (≈ 0.5s)", false);
+        CheckBox autoSel = mkCb.apply("Auto-select Single Marble", true);
+        CheckBox animBoard = mkCb.apply("Board Animations", true);
+
+        Label displayHdr = new Label("DISPLAY");
+        displayHdr.setFont(calcFont("Georgia", FontWeight.BOLD, 12));
+        displayHdr.setTextFill(Color.web("#C4A97A", 0.7));
+        CheckBox trapWarn = mkCb.apply("Warn Before Trap Cells", true);
+        CheckBox showDeck = mkCb.apply("Show Deck Count", true);
+
+        // Dividers between sections
+        java.util.function.Supplier<javafx.scene.shape.Rectangle> mkDiv = () -> {
+            javafx.scene.shape.Rectangle r = new javafx.scene.shape.Rectangle(calcSize(320), 1);
+            r.setFill(Color.web("#C4A97A", 0.25));
+            return r;
+        };
+
+        // Close / Save button
+        Button saveBtn = new Button("✔  Save & Close");
+        styleWalnutButton(saveBtn, "#3A5C2A", "#243815", "#7CB87A");
+        saveBtn.setPrefWidth(calcSize(200));
+        saveBtn.setPrefHeight(calcSize(40));
+        saveBtn.setOnAction(ev -> dlg.close());
+
+        VBox v = new VBox(calcSize(9),
+            titleLbl, divider,
+            audioHdr, soundFx, music,
+            mkDiv.get(), gameplayHdr, hints, fastCPU, autoSel, animBoard,
+            mkDiv.get(), displayHdr, trapWarn, showDeck,
+            new javafx.scene.layout.Region(),
+            saveBtn
+        );
+        // Give spacer region a min height
+        ((javafx.scene.layout.Region) v.getChildren().get(v.getChildren().size() - 2))
+                .setMinHeight(calcSize(8));
+        VBox.setMargin(saveBtn, new Insets(calcSize(6), 0, 0, 0));
+        v.setAlignment(Pos.TOP_LEFT);
+        v.setPadding(new Insets(calcSize(20), calcSize(26), calcSize(20), calcSize(26)));
+        v.setBackground(new Background(new BackgroundFill(
+                Color.web("#1C0F05"), new CornerRadii(calcSize(12)), Insets.EMPTY)));
+        v.setBorder(new Border(new BorderStroke(
+                Color.web("#C4A97A"), BorderStrokeStyle.SOLID,
+                new CornerRadii(calcSize(12)), new BorderWidths(calcSize(1.5)))));
+        javafx.scene.effect.DropShadow ds2 = new javafx.scene.effect.DropShadow();
+        ds2.setColor(Color.web("#000000", 0.75)); ds2.setRadius(calcSize(20));
+        v.setEffect(ds2);
 
         Scene s = new Scene(v);
+        s.setFill(Color.TRANSPARENT);
         dlg.setScene(s);
-        dlg.setWidth(calcSize(360));
-        dlg.setHeight(calcSize(220));
+        dlg.setWidth(calcSize(400));
+        dlg.setHeight(calcSize(480));
         dlg.showAndWait();
     }
 
@@ -1345,69 +1494,69 @@ public class MainScene {
         return panel;
     }
     public Button createPlayButton() {
-        Button button = new Button("▶  Play");
+        Button button = new Button("▶ PLAY");
         button.setLayoutX(calcX(1500.0));
-        button.setLayoutY(calcY(350.0));
+        button.setLayoutY(calcY(430.0));
         button.setMnemonicParsing(false);
-        button.setPrefHeight(calcSize(50.0));
-        button.setPrefWidth(calcSize(145.0));
-        button.setFont(calcFont("Georgia", FontWeight.BOLD, 20));
-
-        String baseStyle =
-        	    "-fx-background-color: linear-gradient(to bottom, #5D4037, #3E2723);" +
-        	    	    "-fx-text-fill: #FAF3E0;" +
-        	    	    "-fx-font-weight: bold;" +
-        	    	    "-fx-font-family: 'Georgia';" +
-        	    	    "-fx-font-size: " + (int) calcSize(20) + "px;" +
-        	    	    "-fx-background-radius: 14;" +
-        	    	    "-fx-border-color: #372412;" +
-        	    	    "-fx-border-radius: 14;" +
-        	    	    "-fx-border-width: 2;" +
-        	    	    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.65), 12, 0, 2, 5);";
-
-        String hoverStyle =
-        	    "-fx-background-color: linear-gradient(to bottom, #8D6E63, #4E342E);" +
-        	    "-fx-text-fill: #FFFDE7;" +
-        	    "-fx-font-weight: bold;" +
-        	    "-fx-font-family: 'Georgia';" +
-        	    "-fx-font-size: " + (int) calcSize(20) + "px;" +
-        	    "-fx-background-radius: 14;" +
-        	    "-fx-border-color: #D7CCC8;" +
-        	    "-fx-border-radius: 14;" +
-        	    "-fx-border-width: 2;" +
-        	    "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.75), 14, 0, 2, 6);";
-
-        button.setStyle(baseStyle);
-        button.setOnMouseEntered(e -> button.setStyle(hoverStyle));
-        button.setOnMouseExited(e -> button.setStyle(baseStyle));
-
+        button.setPrefHeight(calcSize(52.0));
+        button.setPrefWidth(calcSize(148.0));
+        button.setFont(calcFont("Georgia", FontWeight.BOLD, 16.5));
+        String base =
+                "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+                "-fx-text-fill: #E8D5B5; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int)calcSize(16.5) + "px; -fx-background-radius: 26;" +
+                "-fx-border-color: #f1dbb3; -fx-border-radius: 26; -fx-border-width: 2;" +
+                "-fx-effect: dropshadow(gaussian, rgba(212, 163, 115, 0.3), 10, 0, 0, 2);";
+        String hover =
+                "-fx-background-color: linear-gradient(to bottom, #6B4226, #3E2720);" +
+                "-fx-text-fill: #FFF2DF; -fx-font-weight: bold; -fx-font-family: 'Georgia';" +
+                "-fx-font-size: " + (int)calcSize(16.5) + "px; -fx-background-radius: 26;" +
+                "-fx-border-color: #f1dbb3; -fx-border-radius: 26; -fx-border-width: 2.5;" +
+                "-fx-effect: dropshadow(gaussian, rgba(240, 198, 138, 0.85), 25, 0, 0, 8);";
+        button.setStyle(base);
+        button.setOnMouseEntered(e -> button.setStyle(hover));
+        button.setOnMouseExited(e -> button.setStyle(base));
         return button;
     }
     private Label createCurrentPlayerLabel() {
-        Label label = new Label("Current player is:= x");
-        label.setLayoutX(calcX(1210.0));
-        label.setLayoutY(calcY(30.0));
-        label.setPrefHeight(calcSize(46.0));
-        label.setPrefWidth(calcSize(420.0));
-        label.setFont(calcFont("Georgia", FontWeight.BOLD, 22));
+        Label label = new Label("Current: —");
+        label.setLayoutX(calcX(1500.0));
+        label.setLayoutY(calcY(150.0));
+        label.setPrefHeight(calcSize(38.0));
+        label.setPrefWidth(calcSize(310.0));
+        label.setFont(calcFont("Georgia", FontWeight.BOLD, 16));
         label.setAlignment(Pos.CENTER_LEFT);
+        label.setPadding(new Insets(calcSize(6), calcSize(12), calcSize(6), calcSize(12)));
+        label.setBackground(new Background(new BackgroundFill(
+                Color.web("#1A0F05", 0.80), new CornerRadii(calcSize(8)), Insets.EMPTY)));
+        label.setBorder(new Border(new BorderStroke(
+                Color.web("#C4A97A", 0.6), BorderStrokeStyle.SOLID,
+                new CornerRadii(calcSize(8)), new BorderWidths(calcSize(1.2)))));
+        label.setTextFill(Color.web("#E8D5B5"));
         return label;
     }
 
     private Label createNextPlayerLabel() {
-        Label label = new Label("Next player is:= x");
-        label.setLayoutX(calcX(1210.0));
-        label.setLayoutY(calcY(76.0));
-        label.setPrefHeight(calcSize(46.0));
-        label.setPrefWidth(calcSize(420.0));
-        label.setFont(calcFont("Georgia", FontWeight.BOLD, 22));
+        Label label = new Label("Next: —");
+        label.setLayoutX(calcX(1500.0));
+        label.setLayoutY(calcY(196.0));
+        label.setPrefHeight(calcSize(38.0));
+        label.setPrefWidth(calcSize(310.0));
+        label.setFont(calcFont("Georgia", FontWeight.BOLD, 16));
         label.setAlignment(Pos.CENTER_LEFT);
+        label.setPadding(new Insets(calcSize(6), calcSize(12), calcSize(6), calcSize(12)));
+        label.setBackground(new Background(new BackgroundFill(
+                Color.web("#1A0F05", 0.80), new CornerRadii(calcSize(8)), Insets.EMPTY)));
+        label.setBorder(new Border(new BorderStroke(
+                Color.web("#C4A97A", 0.4), BorderStrokeStyle.SOLID,
+                new CornerRadii(calcSize(8)), new BorderWidths(calcSize(1.2)))));
+        label.setTextFill(Color.web("#C4A97A"));
         return label;
     }
 
     private Rectangle createDeckShadow(double offX, double offY) {
         Rectangle rect = new Rectangle(
-                calcX(1500.0) + offX, calcY(130.0) + offY,
+                calcX(1500.0) + offX, calcY(196.0) + offY,
                 calcSize(310.0), calcSize(200.0));
         rect.setArcHeight(calcSize(14.0));
         rect.setArcWidth(calcSize(14.0));
@@ -1420,99 +1569,97 @@ public class MainScene {
     }
 
     private Rectangle createDeckRect() {
-    	Rectangle rect = new Rectangle(calcX(1500.0), calcY(130.0), calcSize(310.0), calcSize(200.0));
+        Rectangle rect = new Rectangle(calcX(1500.0), calcY(200.0), calcSize(310.0), calcSize(200.0));
         rect.setArcHeight(calcSize(14.0));
         rect.setArcWidth(calcSize(14.0));
         LinearGradient deckGrad = new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
-            new Stop(0.00, Color.web("#5C3A1A")),
-            new Stop(0.20, Color.web("#372412")),
-            new Stop(0.40, Color.web("#4A2C0F")),
-            new Stop(0.60, Color.web("#382411")),
-            new Stop(0.80, Color.web("#372412")),
-            new Stop(1.00, Color.web("#3D2208")));
+        	       new Stop(0.00, Color.web("#20160d")),
+        	        new Stop(0.20, Color.web("#372412")),
+        	        new Stop(0.40, Color.web("#3d2b19")),
+        	        new Stop(0.60, Color.web("#382411")),
+        	        new Stop(0.80, Color.web("#372412")),
+        	        new Stop(1.00, Color.web("#20160d")));
         rect.setFill(deckGrad);
-        rect.setStroke(Color.web("#816140"));
+        rect.setStroke(Color.web("#2c211b"));
         rect.setStrokeType(javafx.scene.shape.StrokeType.INSIDE);
         rect.setStrokeWidth(calcSize(4.0));
-        javafx.scene.effect.DropShadow deckShadow = new javafx.scene.effect.DropShadow();
-        deckShadow.setColor(Color.web("#1A0A00", 0.7));
-        deckShadow.setRadius(calcSize(14));
-        deckShadow.setOffsetX(calcSize(3));
-        deckShadow.setOffsetY(calcSize(3));
-        rect.setEffect(deckShadow);
+        
+       
+        
         return rect;
     }
 
     private Label createDeckLabel() {
         Label label = new Label("♠ ♥\n Deck \n♣ ♦");
         label.setLayoutX(calcX(1500.0));
-        label.setLayoutY(calcY(130.0));
+        label.setLayoutY(calcY(200.0));
         label.setPrefWidth(calcSize(310.0));
         label.setPrefHeight(calcSize(130.0));
         label.setAlignment(Pos.CENTER);
         label.setTextAlignment(TextAlignment.CENTER);
-        label.setTextFill(Color.web("#E8C97A"));
+        label.setTextFill(Color.web("#E8D5B5"));
         label.setFont(calcFont("Georgia", FontWeight.BOLD, 18.0));
         label.setWrapText(true);
+        
+        // Subtle glow
+        javafx.scene.effect.DropShadow subtleGlow = new javafx.scene.effect.DropShadow();
+        subtleGlow.setColor(Color.web("#E8BA86", 0.5));
+        subtleGlow.setRadius(calcSize(15));
+        subtleGlow.setSpread(0.2);
+        subtleGlow.setOffsetX(0);
+        subtleGlow.setOffsetY(0);
+        label.setEffect(subtleGlow);
+        
         return label;
     }
 
     private Label createDeckRemainingLabel() {
         Label label = new Label("Rem: x");
         label.setLayoutX(calcX(1500.0));
-        label.setLayoutY(calcY(230.0));
+        label.setLayoutY(calcY(300.0));
         label.setPrefWidth(calcSize(310.0));
         label.setPrefHeight(calcSize(60.0));
         label.setAlignment(Pos.CENTER);
         label.setMinWidth(calcSize(145.0));
-        label.setTextFill(Color.web("#C4A97A"));
+        label.setTextFill(Color.web("#E8D5B5"));
         label.setFont(calcFont("Georgia", FontWeight.BOLD, 18.0));
+        
+        // Subtle glow
+        javafx.scene.effect.DropShadow subtleGlow = new javafx.scene.effect.DropShadow();
+        subtleGlow.setColor(Color.web("#E8BA86", 0.45));
+        subtleGlow.setRadius(calcSize(12));
+        subtleGlow.setSpread(0.15);
+        subtleGlow.setOffsetX(0);
+        subtleGlow.setOffsetY(0);
+        label.setEffect(subtleGlow);
+        
         return label;
     }
-
     private Label createMiscLabel() {
-        Label label = new Label(" Welcome! Select a card and marble to play.");
+        Label label = new Label("⚡ Welcome! Select a card and marble.");
         label.setLayoutX(calcX(1500.0));
-        label.setLayoutY(calcY(30.0));
-        label.setFont(calcFont("Georgia", FontWeight.BOLD, 14.0));
+        label.setLayoutY(calcY(92.0));
+        label.setFont(calcFont("Georgia", FontWeight.BOLD, 12.0));
         label.setAlignment(Pos.CENTER_LEFT);
         label.setWrapText(true);
         label.setPrefWidth(calcSize(310));
-        label.setPrefHeight(calcSize(90));
-        label.setPadding(new Insets(calcSize(12), calcSize(14), calcSize(12), calcSize(14)));
-
-        // Layered background — dark inner with subtle warm tint
+        label.setPrefHeight(calcSize(50));
+        label.setPadding(new Insets(calcSize(8), calcSize(12), calcSize(8), calcSize(12)));
         label.setBackground(new Background(new BackgroundFill(
-                Color.web("#372412", 0.96), new CornerRadii(calcSize(12)), Insets.EMPTY)));
-
-        // Double border effect — golden outer
-        label.setBorder(new Border(
-            new BorderStroke(
-                Color.web("#5C3A1A"),
-                BorderStrokeStyle.SOLID,
-                new CornerRadii(calcSize(12)),
-                new BorderWidths(calcSize(2.5))
-            )
-        ));
-
-        label.setTextFill(Color.web("#F5E6C8"));
-
-        // Stronger shadow for depth
-        javafx.scene.effect.DropShadow notifShadow = new javafx.scene.effect.DropShadow();
-        notifShadow.setColor(Color.web("#000000", 0.75));
-        notifShadow.setRadius(calcSize(18));
-        notifShadow.setOffsetX(calcSize(3));
-        notifShadow.setOffsetY(calcSize(4));
-        notifShadow.setSpread(0.1);
-
-        // Inner glow effect on top of shadow
-        javafx.scene.effect.InnerShadow innerGlow = new javafx.scene.effect.InnerShadow();
-        innerGlow.setColor(Color.web("#C4A97A", 0.15));
-        innerGlow.setRadius(calcSize(10));
-        innerGlow.setInput(notifShadow);
-
-        label.setEffect(innerGlow);
-
+                Color.web("#1A0F05", 0.85), new CornerRadii(calcSize(10)), Insets.EMPTY)));
+        label.setBorder(new Border(new BorderStroke(
+                Color.web("#C4A97A", 0.6), BorderStrokeStyle.SOLID,
+                new CornerRadii(calcSize(10)), new BorderWidths(calcSize(1.8)))));
+        label.setTextFill(Color.web("#E8D5B5"));
+        
+        javafx.scene.effect.DropShadow deckStyleGlow = new javafx.scene.effect.DropShadow();
+        deckStyleGlow.setColor(Color.web("#E8BA86", 0.5));
+        deckStyleGlow.setRadius(calcSize(14));
+        deckStyleGlow.setSpread(0.2);
+        deckStyleGlow.setOffsetX(0);
+        deckStyleGlow.setOffsetY(0);
+        label.setEffect(deckStyleGlow);
+        
         return label;
     }
 
@@ -1526,76 +1673,98 @@ public class MainScene {
     // Alert helpers (kept exactly as before)
     public void displayAlert1(String title, String message) throws FileNotFoundException {
         Stage window = new Stage();
-        VBox layout = new VBox(calcSize(18));
+        window.initModality(Modality.APPLICATION_MODAL);
+        window.setResizable(false);
+        VBox layout = new VBox(18);
         layout.setAlignment(Pos.CENTER);
-        layout.setPadding(new Insets(calcSize(30), calcSize(36), calcSize(28), calcSize(36)));
-        layout.setBackground(new Background(new BackgroundFill(Color.web("#1C0F05"), new CornerRadii(calcSize(14)), Insets.EMPTY)));
-        layout.setBorder(new Border(new BorderStroke(Color.web("#C4A97A"), BorderStrokeStyle.SOLID, new CornerRadii(calcSize(14)), new BorderWidths(2))));
+        layout.setPadding(new Insets(28, 34, 24, 34));
+        layout.setBackground(new Background(new BackgroundFill(Color.web("#1C0F05"), new CornerRadii(14), Insets.EMPTY)));
+        layout.setBorder(new Border(new BorderStroke(Color.web("#C4A97A"), BorderStrokeStyle.SOLID, new CornerRadii(14), new BorderWidths(2))));
         javafx.scene.effect.DropShadow ds = new javafx.scene.effect.DropShadow();
-        ds.setColor(Color.web("#000000", 0.7)); ds.setRadius(calcSize(20)); ds.setOffsetX(calcSize(4)); ds.setOffsetY(calcSize(4));
+        ds.setColor(Color.web("#000000", 0.7)); ds.setRadius(18); ds.setOffsetX(3); ds.setOffsetY(3);
         layout.setEffect(ds);
         Label titleLabel = new Label(title);
-        titleLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 22));
+        titleLabel.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
         titleLabel.setTextFill(Color.web("#E8C97A"));
         Label messageLabel = new Label(message);
-        messageLabel.setFont(calcFont("Georgia", null, 15));
+        messageLabel.setFont(Font.font("Georgia", 14));
         messageLabel.setTextFill(Color.web("#F5E6C8"));
         messageLabel.setWrapText(true);
-        messageLabel.setMaxWidth(calcSize(420));
+        messageLabel.setMaxWidth(380);
         messageLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         Button okButton = new Button("OK");
-        styleThemedButton(okButton);
+        okButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+            "-fx-text-fill: #E8D5B5; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: 13px;" +
+            "-fx-background-radius: 20; -fx-border-color: #f1dbb3; -fx-border-radius: 20; -fx-border-width: 1.5;" +
+            "-fx-padding: 6 28; -fx-effect: dropshadow(gaussian, rgba(212,163,115,0.3), 8, 0, 0, 2);");
+        okButton.setOnMouseEntered(e -> okButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #6B4226, #3E2720);" +
+            "-fx-text-fill: #FFF2DF; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: 13px;" +
+            "-fx-background-radius: 20; -fx-border-color: #f1dbb3; -fx-border-radius: 20; -fx-border-width: 2;" +
+            "-fx-padding: 6 28; -fx-effect: dropshadow(gaussian, rgba(240,198,138,0.8), 16, 0, 0, 5);"));
+        okButton.setOnMouseExited(e -> okButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+            "-fx-text-fill: #E8D5B5; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: 13px;" +
+            "-fx-background-radius: 20; -fx-border-color: #f1dbb3; -fx-border-radius: 20; -fx-border-width: 1.5;" +
+            "-fx-padding: 6 28; -fx-effect: dropshadow(gaussian, rgba(212,163,115,0.3), 8, 0, 0, 2);"));
         okButton.setOnAction(e -> window.close());
         layout.getChildren().addAll(titleLabel, messageLabel, okButton);
         Scene scene = new Scene(layout);
         scene.setFill(Color.TRANSPARENT);
         window.setScene(scene);
+        window.setWidth(460);
+        window.setHeight(220);
         window.showAndWait();
     }
 
     public void displayAlert2(String title, String message) {
         Stage window = new Stage();
-        VBox layout = new VBox(calcSize(18));
+        window.initModality(Modality.APPLICATION_MODAL);
+        window.setResizable(false);
+        VBox layout = new VBox(18);
         layout.setAlignment(Pos.CENTER);
-        layout.setPadding(new Insets(calcSize(30), calcSize(36), calcSize(28), calcSize(36)));
-        layout.setBackground(new Background(new BackgroundFill(Color.web("#1C0F05"), new CornerRadii(calcSize(14)), Insets.EMPTY)));
-        layout.setBorder(new Border(new BorderStroke(Color.web("#C4A97A"), BorderStrokeStyle.SOLID, new CornerRadii(calcSize(14)), new BorderWidths(2))));
+        layout.setPadding(new Insets(28, 34, 24, 34));
+        layout.setBackground(new Background(new BackgroundFill(Color.web("#1C0F05"), new CornerRadii(14), Insets.EMPTY)));
+        layout.setBorder(new Border(new BorderStroke(Color.web("#C4A97A"), BorderStrokeStyle.SOLID, new CornerRadii(14), new BorderWidths(2))));
         javafx.scene.effect.DropShadow ds = new javafx.scene.effect.DropShadow();
-        ds.setColor(Color.web("#000000", 0.7)); ds.setRadius(calcSize(20)); ds.setOffsetX(calcSize(4)); ds.setOffsetY(calcSize(4));
+        ds.setColor(Color.web("#000000", 0.7)); ds.setRadius(18); ds.setOffsetX(3); ds.setOffsetY(3);
         layout.setEffect(ds);
         Label titleLabel = new Label(title);
-        titleLabel.setFont(calcFont("Georgia", FontWeight.BOLD, 22));
+        titleLabel.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
         titleLabel.setTextFill(Color.web("#E8C97A"));
         Label messageLabel = new Label(message);
-        messageLabel.setFont(calcFont("Georgia", null, 15));
+        messageLabel.setFont(Font.font("Georgia", 14));
         messageLabel.setTextFill(Color.web("#F5E6C8"));
         messageLabel.setWrapText(true);
-        messageLabel.setMaxWidth(calcSize(420));
+        messageLabel.setMaxWidth(380);
         messageLabel.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         Button okButton = new Button("OK");
-        styleThemedButton(okButton);
+        okButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+            "-fx-text-fill: #E8D5B5; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: 13px;" +
+            "-fx-background-radius: 20; -fx-border-color: #f1dbb3; -fx-border-radius: 20; -fx-border-width: 1.5;" +
+            "-fx-padding: 6 28; -fx-effect: dropshadow(gaussian, rgba(212,163,115,0.3), 8, 0, 0, 2);");
+        okButton.setOnMouseEntered(e -> okButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #6B4226, #3E2720);" +
+            "-fx-text-fill: #FFF2DF; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: 13px;" +
+            "-fx-background-radius: 20; -fx-border-color: #f1dbb3; -fx-border-radius: 20; -fx-border-width: 2;" +
+            "-fx-padding: 6 28; -fx-effect: dropshadow(gaussian, rgba(240,198,138,0.8), 16, 0, 0, 5);"));
+        okButton.setOnMouseExited(e -> okButton.setStyle(
+            "-fx-background-color: linear-gradient(to bottom, #4A2F1A, #2C1810);" +
+            "-fx-text-fill: #E8D5B5; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: 13px;" +
+            "-fx-background-radius: 20; -fx-border-color: #f1dbb3; -fx-border-radius: 20; -fx-border-width: 1.5;" +
+            "-fx-padding: 6 28; -fx-effect: dropshadow(gaussian, rgba(212,163,115,0.3), 8, 0, 0, 2);"));
         okButton.setOnAction(e -> window.close());
         layout.getChildren().addAll(titleLabel, messageLabel, okButton);
         Scene scene = new Scene(layout);
         scene.setFill(Color.TRANSPARENT);
         window.setScene(scene);
+        window.setWidth(460);
+        window.setHeight(220);
         window.showAndWait();
     }
-
-    private void styleThemedButton(Button btn) {
-        String base = "-fx-background-color: linear-gradient(to bottom, #4CAF50, #2E7D32);" +
-            "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: " + (int) calcSize(14) + "px;" +
-            "-fx-background-radius: " + (int) calcSize(8) + "; -fx-border-color: #A5D6A7; -fx-border-radius: " + (int) calcSize(8) + "; -fx-border-width: 1.5;" +
-            "-fx-padding: " + (int) calcSize(7) + " " + (int) calcSize(28) + "; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.4), 6, 0, 2, 2);";
-        btn.setStyle(base);
-        btn.setOnMouseEntered(e -> btn.setStyle(
-            "-fx-background-color: linear-gradient(to bottom, #66BB6A, #388E3C);" +
-            "-fx-text-fill: white; -fx-font-weight: bold; -fx-font-family: 'Georgia'; -fx-font-size: " + (int) calcSize(14) + "px;" +
-            "-fx-background-radius: " + (int) calcSize(8) + "; -fx-border-color: #C8E6C9; -fx-border-radius: " + (int) calcSize(8) + "; -fx-border-width: 1.5;" +
-            "-fx-padding: " + (int) calcSize(7) + " " + (int) calcSize(28) + "; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 8, 0, 2, 3);"
-        ));
-        btn.setOnMouseExited(e -> btn.setStyle(base));
-    }
+    
 
 
     public int selectedCount;

@@ -1,13 +1,12 @@
 package controller;
 
-import java.io.FileInputStream;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import engine.Game;
 import engine.board.Cell;
-import engine.board.CellType;
 import engine.board.SafeZone;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -21,7 +20,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
+
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
@@ -30,7 +29,7 @@ import javafx.scene.layout.BorderStroke;
 import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.BorderWidths;
 import javafx.scene.layout.CornerRadii;
-import javafx.scene.layout.HBox;
+
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -50,12 +49,12 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     private AnchorPane an;
     private Scene playerNameScene;
-    private Label nameLabel;
+
     private TextField nameField;
     private Button startGame;
 
     // ─── Round tracking ───────────────────────────────────────────────────────────
-    private static int uiRoundCounter = 0;
+   
     private static int lastHandSize   = 4;
     // ─── Skip tracking for Ten/Queen discard effect ───────────────────────────────
     private static final java.util.Set<Colour> skippedPlayers = new java.util.HashSet<>();
@@ -201,19 +200,27 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 activeMs = ms;
                 Scene scene2 = ms.createGameScene();
 
-                // Link safe zone cells
-                for (int i = 0; i < ms.c.getSafeCellPairs().size(); i++) {
-                    int playerIdx = i / 4;
-                    int cellIdx   = i % 4;
-                    Cell engineCell = game.getBoard().getSafeZones().get(playerIdx).getCells().get(cellIdx);
-                    ms.c.safeCellPairs.get(i).setCell(engineCell);
+                int[] uiToEngine = new int[4];
+                for (int uiP = 0; uiP < 4; uiP++) {
+                    Colour uiColour = game.getPlayers().get(uiP).getColour();
+                    for (int eP = 0; eP < 4; eP++) {
+                        if (game.getBoard().getSafeZones().get(eP).getColour() == uiColour) {
+                            uiToEngine[uiP] = eP;
+                            break;
+                        }
+                    }
+                }
+                for (int uiP = 0; uiP < 4; uiP++) {
+                    for (int c = 0; c < 4; c++) {
+                        Cell engineCell = game.getBoard().getSafeZones().get(uiToEngine[uiP]).getCells().get(c);
+                        ms.c.safeCellPairs.get(uiP * 4 + c).setCell(engineCell);
+                    }
                 }
 
                 // Link track cells
                 for (int i = 0; i < ms.c.circleCellPairs.size(); i++) {
                     ms.c.circleCellPairs.get(i).setCell(game.getBoard().getTrack().get(i));
                 }
-
                 // Resolve FX colours per player order
                 Color[] fxColors = new Color[4];
                 for (int i = 0; i < 4; i++) {
@@ -228,11 +235,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                     }
                 }
 
-                // Initialize safe zone circles with player color (faded)
-                for (int p = 0; p < 4; p++) {
-                    Color playerFaded = fxColors[p].deriveColor(0, 0.5, 1.5, 0.35);
+                // Initialize safe zone circles with player color (faded) — match by colour order
+                for (int uiP = 0; uiP < 4; uiP++) {
+                    Color playerFaded = fxColors[uiP].deriveColor(0, 0.5, 1.5, 0.35);
                     for (int c = 0; c < 4; c++) {
-                        javafx.scene.shape.Circle circle = ms.c.safeCellPairs.get(p * 4 + c).getCircle();
+                        javafx.scene.shape.Circle circle = ms.c.safeCellPairs.get(uiP * 4 + c).getCircle();
                         circle.setFill(playerFaded);
                         circle.setStroke(Color.BLACK);
                         circle.setStrokeWidth(1.0);
@@ -623,18 +630,24 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         for (int i = 0; i < ms.c.circleCellPairs.size(); i++) {
             Cell cell = track.get(i);
             Marble marble = cell.getMarble();
-            ms.c.circleCellPairs.get(i).getCircle().setFill(
-                marble != null ? colourToFX(marble.getColour()) : emptyPattern
-            );
+            javafx.scene.shape.Circle circle = ms.c.circleCellPairs.get(i).getCircle();
+            circle.setFill(marble != null ? colourToFX(marble.getColour()) : emptyPattern);
+            circle.setStroke(Color.BLACK);
+            circle.setStrokeWidth(1.0);
         }
 
-        // Safe zones
-        for (int p = 0; p < 4; p++) {
-            SafeZone sz = game.getBoard().getSafeZones().get(p);
-            Color playerFaded = fxColors[p].deriveColor(0, 0.5, 1.5, 0.35);
+        // Safe zones — match UI player index to engine safe zone by colour
+        for (int uiP = 0; uiP < 4; uiP++) {
+            Colour uiColour = game.getPlayers().get(uiP).getColour();
+            SafeZone sz = null;
+            for (SafeZone zone : game.getBoard().getSafeZones()) {
+                if (zone.getColour() == uiColour) { sz = zone; break; }
+            }
+            if (sz == null) continue;
+            Color playerFaded = fxColors[uiP].deriveColor(0, 0.5, 1.5, 0.35);
             for (int c = 0; c < 4; c++) {
                 Marble marble = sz.getCells().get(c).getMarble();
-                javafx.scene.shape.Circle circle = ms.c.safeCellPairs.get(p * 4 + c).getCircle();
+                javafx.scene.shape.Circle circle = ms.c.safeCellPairs.get(uiP * 4 + c).getCircle();
                 if (marble != null) {
                     circle.setFill(colourToFX(marble.getColour()));
                 } else {
@@ -900,9 +913,22 @@ public class Main extends Application implements EventHandler<ActionEvent> {
                 ms.splitDist1 = 3;
                 ms.adjustSplit(1, 0);
                 ms.showActionPanel("SEVEN", canSplit);
-                showInfo("Seven", canSplit
-                        ? "1 marble + Play = move 7 steps.  OR  Select 2 marbles + set split + Apply Split."
-                        : "Select your marble on track and press Play to move it 7 steps.");
+                // Auto-select the single marble if only one is on track
+                if (sevenOnTrack == 1) {
+                    for (CircleGrid.CircleCellPair p : ms.c.getCircleCellPairs()) {
+                        if (p.getCircle().getFill().equals(humanFX)) {
+                            ms.c.getSelectedMarbles().add(p);
+                            p.getCircle().setStroke(Color.WHITE);
+                            p.getCircle().setStrokeWidth(3);
+                            break;
+                        }
+                    }
+                    showInfo("Seven", "Move 7 steps — marble auto-selected. Press Play.");
+                } else {
+                    showInfo("Seven", canSplit
+                            ? "Select 1 marble + Play (7 steps).  OR  Select 2 marbles + set split + Apply Split."
+                            : "Select your marble on track and press Play to move it 7 steps.");
+                }
             }
         } else if (name.contains("BURNER")) {
             // Burner: select only opponent marbles on the main track (not base, not safe, not home)
@@ -917,11 +943,11 @@ public class Main extends Application implements EventHandler<ActionEvent> {
         } else if (name.contains("TEN")) {
             ms.c.makeMarbleSelectable();
             ms.showActionPanel("TEN", false);
-            showInfo("Ten", "Move a marble 10 steps, OR use Discard to skip next player.");
+            showInfo("Ten", "Move a marble 10 steps, OR use Discard to skip the NEXT player's turn.");
         } else if (name.contains("QUEEN")) {
             ms.c.makeMarbleSelectable();
             ms.showActionPanel("QUEEN", false);
-            showInfo("Queen", "Move a marble 12 steps, OR use Discard to skip a random player.");
+            showInfo("Queen", "Move a marble 12 steps, OR use Discard to skip a RANDOM player's turn.");
         } else if (name.contains("FIVE")) {
             ms.c.makeTrackMarblesSelectable();
             ms.showActionPanel("", false);
@@ -930,6 +956,31 @@ public class Main extends Application implements EventHandler<ActionEvent> {
             ms.c.makeMarbleSelectable();
             ms.showActionPanel("", false);
             showInfo(card.getName(), card.getDescription());
+    
+            long totalPlayerMarbles = ms.c.getCircleCellPairs().stream()
+                    .filter(p -> p.getCircle().getFill().equals(humanFX)).count()
+                + ms.c.getSafeCellPairs().stream()
+                    .filter(p -> p.getCircle().getFill().equals(humanFX)).count();
+            if (totalPlayerMarbles == 1) {
+                for (CircleGrid.CircleCellPair p : ms.c.getCircleCellPairs()) {
+                    if (p.getCircle().getFill().equals(humanFX)) {
+                        ms.c.getSelectedMarbles().add(p);
+                        p.getCircle().setStroke(Color.WHITE);
+                        p.getCircle().setStrokeWidth(3);
+                        break;
+                    }
+                }
+                if (ms.c.getSelectedMarbles().isEmpty()) {
+                    for (CircleGrid.CircleCellPair p : ms.c.getSafeCellPairs()) {
+                        if (p.getCircle().getFill().equals(humanFX)) {
+                            ms.c.getSelectedMarbles().add(p);
+                            p.getCircle().setStroke(Color.WHITE);
+                            p.getCircle().setStrokeWidth(3);
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -1041,37 +1092,43 @@ public class Main extends Application implements EventHandler<ActionEvent> {
 
     public void displayAlert1(String title, String message) throws FileNotFoundException {
         Stage window = new Stage();
+        window.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        window.setResizable(false);
         VBox layout = buildAlertLayout();
         Label t = new Label(title);
-        t.setFont(Font.font("Georgia", FontWeight.BOLD, 22));
+        t.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
         t.setTextFill(Color.web("#E8C97A"));
         Label m = new Label(message);
-        m.setFont(Font.font("Georgia", 15));
+        m.setFont(Font.font("Georgia", 14));
         m.setTextFill(Color.web("#F5E6C8"));
-        m.setWrapText(true); m.setMaxWidth(420);
+        m.setWrapText(true); m.setMaxWidth(380);
         m.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         Button ok = new Button("OK");
         styleAlertButton(ok);
         ok.setOnAction(ev -> window.close());
         layout.getChildren().addAll(t, m, ok);
+        window.setWidth(460); window.setHeight(220);
         window.setScene(new Scene(layout)); window.showAndWait();
     }
 
     public static void displayAlert2(String title, String message) {
         Stage window = new Stage();
+        window.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        window.setResizable(false);
         VBox layout = buildAlertLayout();
         Label t = new Label(title);
-        t.setFont(Font.font("Georgia", FontWeight.BOLD, 22));
+        t.setFont(Font.font("Georgia", FontWeight.BOLD, 20));
         t.setTextFill(Color.web("#E8C97A"));
         Label m = new Label(message);
-        m.setFont(Font.font("Georgia", 15));
+        m.setFont(Font.font("Georgia", 14));
         m.setTextFill(Color.web("#F5E6C8"));
-        m.setWrapText(true); m.setMaxWidth(420);
+        m.setWrapText(true); m.setMaxWidth(380);
         m.setTextAlignment(javafx.scene.text.TextAlignment.CENTER);
         Button ok = new Button("OK");
         styleAlertButton(ok);
         ok.setOnAction(ev -> window.close());
         layout.getChildren().addAll(t, m, ok);
+        window.setWidth(460); window.setHeight(220);
         window.setScene(new Scene(layout)); window.showAndWait();
     }
 

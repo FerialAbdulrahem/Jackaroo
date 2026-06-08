@@ -733,49 +733,45 @@ public class CircleGrid extends GridPane {
     }
 
     /**
-     * Makes all marbles on the board selectable, regardless of color
-     * Used for special cards like Jack and Seven
+     * Makes all marbles on the TRACK selectable (any colour), excluding safe zone and home zone.
+     * Used for Jack which can only swap marbles that are on the general track.
      */
     public void makeAllMarblesSelectable() {
-        // First clear all selections
         clearMarbleSelections();
-        
-        // Set special card mode
         setSpecialCardActive(true);
-        
-        // Make all marbles on track selectable
+        // Jack: only track marbles that are NOT in their own Base Cell
         for (CircleCellPair pair : circleCellPairs) {
-            if (pair.getCircle().getFill() instanceof Color && 
-                !((Color)pair.getCircle().getFill()).equals(Color.web("#fad082"))) {
-                makeCircleSelectable(pair);
-            }
-        }
-        
-        // Make all marbles in home zones selectable
-        for (CircleCellPair pair : homeCellPairs) {
-            if (pair.getCircle().getFill() instanceof Color && 
-                !((Color)pair.getCircle().getFill()).equals(Color.web("#fad082"))) {
-                makeCircleSelectable(pair);
-            }
+            javafx.scene.paint.Paint fill = pair.getCircle().getFill();
+            if (!(fill instanceof Color)) continue;
+            Color c = (Color) fill;
+            if (c.equals(Color.web("#fad082")) || c.getOpacity() <= 0.5) continue;
+            // Exclude a marble sitting in its own Base Cell (swap invalid per rules)
+            Cell cell = pair.getCell();
+            if (cell != null && cell.getCellType() == CellType.BASE
+                    && cell.getMarble() != null) continue;
+            makeCircleSelectable(pair);
         }
     }
     
     /**
-     * Makes only OPPONENT marbles on the TRACK selectable (excludes player's own color, safe zone, home zone).
-     * Used for the Burner card which can only target opponent marbles on track (not base, not safe, not home).
+     * Makes only OPPONENT marbles on the TRACK selectable.
+     * Burner rule: opponent marble must be on track and NOT in its own Base Cell.
+     * Safe Zone and Home Zone marbles are immune and not shown in circleCellPairs.
      */
     public void makeOpponentTrackMarblesSelectable() {
         clearMarbleSelections();
         setSpecialCardActive(true);
         for (CircleCellPair pair : circleCellPairs) {
             javafx.scene.paint.Paint fill = pair.getCircle().getFill();
-            if (fill instanceof Color) {
-                Color c = (Color) fill;
-                // Must be a marble (not empty #fad082), not the player's own color, and solid (not faded safe-zone)
-                if (!c.equals(Color.web("#fad082")) && !c.equals(playerColor) && c.getOpacity() > 0.5) {
-                    makeCircleSelectable(pair);
-                }
-            }
+            if (!(fill instanceof Color)) continue;
+            Color c = (Color) fill;
+            if (c.equals(Color.web("#fad082")) || c.getOpacity() <= 0.5) continue;
+            if (c.equals(playerColor)) continue; // own marble
+            // Exclude marble sitting in its own Base Cell (immune to Burner per rules)
+            Cell cell = pair.getCell();
+            if (cell != null && cell.getCellType() == CellType.BASE
+                    && cell.getMarble() != null) continue;
+            makeCircleSelectable(pair);
         }
     }
 
@@ -786,16 +782,18 @@ public class CircleGrid extends GridPane {
     public void makeTrackMarblesSelectable() {
         clearMarbleSelections();
         setSpecialCardActive(true);
-        // Only circleCellPairs = track cells. Empty cells have #fad082 fill.
+        // Five card: any marble on the TRACK except those sitting in their own Base Cell
         for (CircleCellPair pair : circleCellPairs) {
             javafx.scene.paint.Paint fill = pair.getCircle().getFill();
-            if (fill instanceof Color) {
-                Color c = (Color) fill;
-                // Not empty (#fad082) and not a faded safe-zone colour — just any solid marble
-                if (!c.equals(Color.web("#fad082")) && c.getOpacity() > 0.5) {
-                    makeCircleSelectable(pair);
-                }
-            }
+            if (!(fill instanceof Color)) continue;
+            Color c = (Color) fill;
+            // Skip empty cells
+            if (c.equals(Color.web("#fad082")) || c.getOpacity() <= 0.5) continue;
+            // Skip marbles sitting in their own Base Cell (immune per rules)
+            Cell cell = pair.getCell();
+            if (cell != null && cell.getCellType() == CellType.BASE
+                    && cell.getMarble() != null) continue;
+            makeCircleSelectable(pair);
         }
     }
 
@@ -934,16 +932,38 @@ public class CircleGrid extends GridPane {
                 circle.setStroke(Color.BLACK);
                 circle.setStrokeWidth(1);
             } else {
-                // For regular cards, only allow one marble selection
-                if (!isSpecialCardActive && !selectedMarbles.isEmpty()) {
-                    return;
+                // Determine max allowed selections:
+                // - Jack/Burner/Five (isSpecialCardActive): up to 2 for Jack swap, 1 for others
+                // - Seven with splitRow visible or canSplit mode: up to 2
+                // - Default: 1
+                boolean splitVisible = mainScene != null
+                        && mainScene.splitRow != null
+                        && mainScene.splitRow.isVisible();
+                boolean sevenActive = mainScene != null
+                        && mainScene.actionPanel != null
+                        && mainScene.actionPanel.isVisible()
+                        && mainScene.splitLabel != null
+                        && mainScene.splitLabel.isVisible();
+                int maxAllowed;
+                if (isSpecialCardActive) {
+                    maxAllowed = 2; // Jack swap needs 2
+                } else if (splitVisible || sevenActive) {
+                    maxAllowed = 2; // Seven split needs 2
+                } else {
+                    maxAllowed = 1;
                 }
-                
-                // For Jack card, allow selecting two marbles for swapping
-                if (isSpecialCardActive && selectedMarbles.size() >= 2) {
-                    return;
+
+                if (selectedMarbles.size() >= maxAllowed) {
+                    // If at limit, deselect first and select new one (for single-marble cases)
+                    if (maxAllowed == 1 && !selectedMarbles.isEmpty()) {
+                        CircleCellPair old = selectedMarbles.remove(0);
+                        old.getCircle().setStroke(Color.BLACK);
+                        old.getCircle().setStrokeWidth(1);
+                    } else {
+                        return;
+                    }
                 }
-                
+
                 // Select marble
                 selectedMarbles.add(pair);
                 circle.setStroke(Color.WHITE);
