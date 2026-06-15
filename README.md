@@ -1,169 +1,206 @@
-Perfect! Now that I've read the actual `Game Description.pdf`, I can see the **Jackaroo** game is much more sophisticated than I initially thought. It's a **single-player vs. 3 CPU players** card-marble hybrid game with unique mechanics.
-
-Here is the **corrected and detailed documentation** based on the actual game rules and the screenshot `Photo.png`:
-
----
-
 # 🃏 Jackaroo Board Game
 
-This repository contains a **Java-based strategic board/card game** — a unique single-player adaptation of the classic Middle Eastern game "Jackaroo" where you compete against 3 CPU players using marbles and a custom 102-card deck.
+<div align="center">
+
+![Java](https://img.shields.io/badge/Java-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![JavaFX](https://img.shields.io/badge/JavaFX-007396?style=for-the-badge&logo=java&logoColor=white)
+![Eclipse](https://img.shields.io/badge/Eclipse-2C2255?style=for-the-badge&logo=eclipse&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Complete-brightgreen?style=for-the-badge)
+
+**A strategic single-player adaptation of the classic Middle Eastern board game — built in Java with a full GUI, 3 CPU opponents, and 15 unique card types.**
+
+[🎮 View Screenshot](#-gameplay-screenshot) · [📖 Game Rules](#-game-rules) · [⚙️ Setup](#️-installation--setup) · [📁 Project Structure](#-project-structure)
+
+</div>
 
 ---
 
-## 📂 Project Overview
+## 📌 Table of Contents
 
-| 🌟 Project | 📘 Course | 🛠️ Languages/Tools | 📎 Link |
-|------------|-----------|--------------------|---------|
-| 🎲 **Jackaroo Board Game** | Computer Programming Lab (Spring 2025) – GUC | Java, OOP, CSV Parsing | [Go to Project](https://github.com/FerialAbdulrahem/Jackaroo) |
-
----
-
-## 🎲 Jackaroo: A New Game Spin
-**Course:** Computer Programming Lab – Spring 2025  
-**Instructors:** Prof. Dr. Slim Abdennadher, Assoc. Prof. Mervat Abu-ElKheir, Dr. Ahmed Abdelfattah  
-**Languages/Tools:** Java, Object-Oriented Programming, CSV File Handling
-
-📖 **Description:**  
-Designed and implemented a **strategic single-player board/card game** where the human player controls 4 colored marbles against 3 CPU players. The game features a 100-cell track, special zones (Home, Safe, Base, Entry), trap cells, and a custom 102-card deck with 15 card types (including standard ranks Ace-King plus two wild cards: Burner and Saver). Players must strategically play cards to move marbles, swap positions, burn opponent marbles, save their own marbles, field new marbles from Home zone, or discard opponents' cards and skip their turns.
-
-📄 [Read Game Description (PDF)](https://github.com/FerialAbdulrahem/Jackaroo/blob/main/Game%20Description.pdf)  
-🖼️ [View Game Screenshot (Photo.png)](https://github.com/FerialAbdulrahem/Jackaroo/blob/main/Photo.png)
-
-✅ **Outcome:** Delivered a complete Java implementation of a complex turn-based strategy game with 3 CPU opponents, special card effects, collision mechanics, trap cells, and win condition checking.
-
-📎 [Go to Project Folder](https://github.com/FerialAbdulrahem/Jackaroo/tree/main/JackrooGame)
+- [About the Project](#-about-the-project)
+- [Gameplay Screenshot](#-gameplay-screenshot)
+- [Game Rules](#-game-rules)
+  - [Board Layout & Zones](#board-layout--zones)
+  - [Card Reference](#card-reference-15-types)
+  - [Movement & Collision Rules](#movement--collision-rules)
+- [Installation & Setup](#️-installation--setup)
+- [How to Play](#-how-to-play)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#️-tech-stack)
+- [Contributors](#-contributors)
 
 ---
 
-## 🎮 Game Rules Summary (Based on Actual Game Description)
+## 🎯 About the Project
 
-### Game Setup
-| Element | Description |
-|---------|-------------|
-| **Players** | 1 human vs 3 CPU players (CPU1, CPU2, CPU3 as seen in screenshot) |
-| **Marbles** | 4 uniquely colored marbles per player |
-| **Board** | 100-cell main track + Home Zones + Safe Zones + Base Cells + Entry Cells |
-| **Deck** | 102 custom cards (15 types, including Ace to King + Burner + Saver) |
-| **Fire Pit** | Discard pile where played cards go |
-| **Trap Cells** | 8 randomly positioned cells that destroy marbles that land on them |
+**Jackaroo** is a competitive marble-and-card board game implemented as a Java desktop application. The human player controls **4 colored marbles** on a **100-cell circular track** and competes against **3 CPU opponents**, all trying to be the first to move all their marbles from the Home Zone into the Safe Zone.
 
-### Game Objective
-**Be the first player to move all 4 of your marbles from your Home Zone into your Safe Zone.**
+| Detail | Info |
+|--------|------|
+| 📚 **Course** | Computer Programming Lab – Spring 2025, GUC |
+| 👩‍💻 **Language** | Java (100%) |
+| 🖥️ **GUI** | JavaFX |
+| 🃏 **Deck** | 102 cards · 15 unique types |
+| 🎲 **Players** | 1 Human vs. 3 CPU |
+| 🏁 **Win Condition** | First to fill all 4 Safe Zone cells |
 
-### Game Flow
-1. **Each Round:** Every player receives 4 cards
-2. **Each Turn:** Play 1 card from hand, execute its action
-3. **CPU Turns:** Randomly select and play cards
-4. **Rounds continue** until someone moves all marbles to Safe Zone
+> 📄 **Full game specification:** [Game Description.pdf](./Game%20Description.pdf)
 
 ---
 
-## 🃏 Card Actions (15 Card Types)
+## 🖼️ Gameplay Screenshot
 
-| Card | Code | Action Description |
-|------|------|---------------------|
-| **Ace** | 1 | Field a marble from Home Zone to Base cell OR act as standard card |
-| **King** | 13 | Field a marble OR move 13 steps destroying ALL marbles in path (bypasses self-block, path blockage, safe zone entry rules) |
-| **Queen** | 12 | Discard random card from random opponent's hand AND skip their turn |
-| **Jack** | 11 | Swap one of your marbles with an opponent's marble on track (not in Base cell) |
-| **Ten** | 10 | Discard random card from NEXT player's hand AND skip their turn |
-| **Seven** | 7 | Split 7 steps between two of your own marbles (e.g., 3+4, 2+5) OR act as standard |
-| **Five** | 5 | Move ANY marble on track 5 steps |
-| **Four** | 4 | Move one of your marbles 4 steps BACKWARDS |
-| **Burner** | 14 | Destroy an opponent's marble on track (not in Base/Safe/Home zones) → sends to Home |
-| **Saver** | 15 | Send one of your marbles to a random empty Safe Zone cell |
-| **Standard (2,3,6,8,9)** | 0 | Move your marble forward by card's rank number |
+<div align="center">
 
-### Special Rules for Cards:
-- **King bypasses:** Self-blocking, path blockage, and Safe Zone Entry blockage
-- **Jack swap:** Only valid if both marbles on general track, neither in Base cell
-- **Burner:** Cannot burn your own marble or marbles in Base/Safe/Home zones
+[Jackaroo Game UI](https://github.com/FerialAbdulrahem/Jackaroo/blob/main/Photo.png)
+
+*The main game board showing the circular marble track, player hands, CPU panels, and the Fire Pit discard pile.*
+
+</div>
 
 ---
 
-## 🎯 Movement & Zone Rules
+## 📖 Game Rules
 
-| Zone/Cell | Purpose | Key Rules |
-|-----------|---------|------------|
-| **Home Zone** | Starting area for marbles | Marbles inactive here; need Ace/King to field |
-| **Base Cell** | Starting position on track | Ace/King places marble here. Own marble in Base blocks passage |
-| **Safe Zone** | Goal area (immune zone) | Enter by exact count only. Cannot return to track. Immune to attacks |
-| **Safe Zone Entry** | Cell before Safe Zone | Marble here blocks ALL players from entering Safe Zone |
-| **Trap Cells** | 8 random positions | Landing here destroys marble → returns to Home Zone. Trap relocates after each destruction |
-| **Track** | 100-cell main path | Normal, Base, or Entry cells. Move clockwise |
+### Board Layout & Zones
 
-### Collision Rules
+The board consists of a **100-cell circular track** plus special zones for each of the 4 players:
+
+| Zone | Description | Rules |
+|------|-------------|-------|
+| 🏠 **Home Zone** | Where all 4 marbles begin | Marbles are inactive here. Requires an **Ace** or **King** to enter the track |
+| 🔵 **Base Cell** | First cell on the track per player | Entry point from Home Zone. A friendly marble here **blocks passage** for that player |
+| 🛡️ **Safe Zone** | Final destination (immune area) | Marbles here are **immune to all attacks**. Enter by exact step count only — cannot overshoot |
+| 🚪 **Safe Zone Entry** | Cell immediately before Safe Zone | A marble parked here **blocks ALL players** from entering that Safe Zone |
+| ⚠️ **Trap Cells** | 8 randomly placed cells on the track | Landing here **destroys your marble** (sends it back to Home). Trap **relocates** after each trigger |
+
+---
+
+### Card Reference (15 Types)
+
+The deck contains **102 cards** across 15 types. Each player is dealt **4 cards** per round.
+
+| Card | Rank | Action |
+|------|------|--------|
+| **Ace** | 1 | Field a marble from Home → Base Cell, **OR** move forward 1 step |
+| **Two** | 2 | Move forward 2 steps |
+| **Three** | 3 | Move forward 3 steps |
+| **Four** | 4 | Move a marble **backwards** 4 steps |
+| **Five** | 5 | Move **any marble on the track** (including opponents') 5 steps forward |
+| **Six** | 6 | Move forward 6 steps |
+| **Seven** | 7 | Split 7 steps between **two of your own marbles** (any combination: 1+6, 2+5, 3+4), **OR** move one marble 7 steps |
+| **Eight** | 8 | Move forward 8 steps |
+| **Nine** | 9 | Move forward 9 steps |
+| **Ten** | 10 | **Discard** a random card from the **next player's** hand and **skip their turn** |
+| **Jack** | 11 | **Swap** one of your marbles with an opponent's marble on the track (neither can be in a Base Cell) |
+| **Queen** | 12 | **Discard** a random card from any **random opponent's** hand and **skip their turn** |
+| **King** | 13 | Field a marble from Home **OR** move 13 steps, **destroying ALL marbles** in the path (bypasses blockage rules) |
+| **Burner** | 14 | Destroy one opponent marble on the track → sends it to their Home Zone (cannot target Base/Safe/Home) |
+| **Saver** | 15 | Teleport one of your marbles to a **random empty Safe Zone cell** |
+
+> **Standard cards (2, 3, 6, 8, 9):** Move your marble forward by the card's rank value.
+
+---
+
+### Movement & Collision Rules
+
 | Scenario | Result |
 |----------|--------|
-| Land on opponent's marble | Opponent's marble destroyed → returns to Home Zone |
-| Land on your own marble | Invalid move (cannot self-block) |
-| King move | ALL marbles in path (including target) destroyed |
-| More than 1 marble blocking path | Movement invalid |
+| Land on **opponent's marble** | Their marble is destroyed → returns to Home Zone |
+| Attempt to land on **your own marble** | ❌ Invalid move |
+| **King** moves through marbles | ALL marbles in the path are destroyed (including the destination) |
+| **More than 1 marble** blocks your path | ❌ Movement is invalid |
+| Land on a **Trap Cell** | Your marble destroyed → returns Home. Trap relocates |
+| Enter **Safe Zone** with leftover steps | ❌ Must enter by exact count |
+
+#### Special Card Exceptions
+- **King** bypasses: own marble blocking, path blockage, and Safe Zone Entry blockage
+- **Jack** swap: only valid if both marbles are on the general track and neither is in a Base Cell
+- **Burner**: cannot target your own marbles or marbles in Base/Safe/Home zones
+- **Five**: can move any marble — even CPU marbles — which adds a strategic layer
 
 ---
 
-
-## 🛠️ Installation & Setup
+## ⚙️ Installation & Setup
 
 ### Prerequisites
-- ☕ **Java JDK 8 or higher**
+
+- ☕ **Java JDK 8+** — [Download here](https://www.oracle.com/java/technologies/downloads/)
+- 🖥️ **JavaFX SDK** (if not bundled with your JDK) — [Download here](https://openjfx.io/)
 - 🐙 **Git** (optional)
 
-### Quick Start
+### Clone & Run
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/FerialAbdulrahem/Jackaroo.git
-   cd Jackaroo
-   ```
+```bash
+# 1. Clone the repository
+git clone https://github.com/FerialAbdulrahem/Jackaroo.git
+cd Jackaroo
 
-2. **Navigate to game source**
-   ```bash
-   cd JackrooGame
-   ```
+# 2. Navigate to the game source folder
+cd JackrooGame
 
-3. **Compile Java files**
-   ```bash
-   javac *.java
-   ```
+# 3. Compile all Java files
+javac *.java
 
-4. **Run the game**
-   ```bash
-   java Main   # or the main class name
-   ```
+# 4. Run the game
+java Main
+```
 
-### Expected Data Files
-The game likely reads:
-- `Cards.csv` – Contains 102 cards with: Code, Frequency, Name, Description, Rank, Suit
+### Running via Eclipse IDE
+
+1. Open Eclipse → **File → Import → Existing Projects into Workspace**
+2. Select the `Jackaroo/` root folder
+3. Eclipse will auto-detect the `.project` and `.classpath` files
+4. Right-click `Main.java` → **Run As → Java Application**
+
+> **Note:** If JavaFX is not on your module path, add it under **Project → Properties → Java Build Path → Libraries → Add External JARs** and include all `.jar` files from your JavaFX `lib/` folder.
+
+### Required Files
+
+The game reads card data from a CSV file at startup:
+
+```
+Cards.csv   — 64 cards with fields: Code, Frequency, Name, Description, Rank, Suit
+```
+
+Ensure this file is present in the working directory or source folder before launching.
 
 ---
 
 ## 🎮 How to Play
 
-### Controls (Based on screenshot UI)
-| Action | Method |
-|--------|--------|
-| Select card | Click on card from hand |
-| Select marble | Click on your marble on board |
-| Play card | Click PLAY button |
-| Skip turn | Click SkipTurn button |
-| View help | Click Rules&Help button |
+### Turn Structure
 
-### Turn Flow (Human Player)
-1. **View your hand** (4 cards visible)
-2. **Select a card** (e.g., King, Eight, Nine, or Three from screenshot)
-3. **Select a marble** (if action requires it)
-4. **Click PLAY** to execute action
-5. **Card moves to Fire Pit**
-6. **Next player (CPU) takes turn**
+```
+Each Round:
+  └── All 4 players receive 4 cards
+      └── Each player's turn:
+            1. Select a card from your hand
+            2. Select a marble (if the card requires a target)
+            3. Click PLAY to execute
+            4. Card moves to Fire Pit
+            5. Next player takes their turn
+```
+
+### Controls
+
+| Action | How |
+|--------|-----|
+| Select a card | Click the card in your hand panel |
+| Select a marble | Click the marble on the board |
+| Execute action | Click **PLAY** button |
+| Skip your turn | Click **SkipTurn** button |
+| View rules | Click **Rules & Help** button |
 
 ### CPU Behavior
-- Randomly selects card from their hand (always 4 cards)
-- Randomly selects marble if action requires it
-- Executes card action automatically
 
-### Winning Condition
-**First player to move all 4 marbles from Home Zone → through Track → into Safe Zone wins.**
+- Each CPU randomly selects a card from their hand
+- If the card requires a marble target, the CPU picks one at random
+- CPU turns execute automatically and immediately
+
+### Winning
+
+> 🏆 **First player to move all 4 marbles from their Home Zone into their Safe Zone wins the game.**
 
 ---
 
@@ -171,27 +208,47 @@ The game likely reads:
 
 ```
 Jackaroo/
-├── JackrooGame/              # Main game source code (Java files)
-├── .settings/                # Eclipse IDE settings
-├── Game Description.pdf      # Official 10-page game rules document
-├── Photo.png                 # Screenshot of game UI
-├── Cards.csv                 # 102-card deck definition (referenced in PDF)
-├── .classpath                # Eclipse build path
-├── .project                  # Eclipse project file
-└── README.md                 # Project documentation
+│
+├── JackrooGame/                  # 🎮 Core game source code (Java)
+│   ├── Main.java                 #    Entry point — launches the JavaFX app
+│   ├── MainScene.java            #    Primary game scene — board, UI, turn logic
+│   ├── CircleGrid.java           #    Board rendering — marble positions, zones
+│   └── *.java                    #    Supporting classes (Card, Player, CPU, etc.)
+│
+├── Description/                  # 📄 Assignment/specification files
+├── .settings/                    # ⚙️  Eclipse IDE settings
+│
+├── Game Description.pdf          # 📖 Official 10-page game rules document
+├── Photo.png                     # 🖼️  Screenshot of the game UI
+├── Cards.csv                     # 🃏 Card deck definition (102 cards)
+├── .classpath                    # Eclipse build path config
+├── .project                      # Eclipse project metadata
+└── README.md                     # 📚 This file
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-| 🔧 Tool | 📌 Usage |
-|---------|----------|
-| ☕ Java | Core game logic, OOP, MVC pattern likely |
-| 📄 CSV parsing | Reading 102-card deck |
-| 🖥️ Eclipse IDE | Development environment |
-| 🎨 Swing/JavaFX (likely) | GUI from screenshot (buttons, cards display) |
+| Tool | Purpose |
+|------|---------|
+| ☕ **Java** | Core game logic, OOP architecture |
+| 🎨 **JavaFX** | GUI — board rendering, card panels, dialogs |
+| 📄 **CSV Parsing** | Loading 102-card deck from `Cards.csv` |
+| 🔵 **Eclipse IDE** | Development environment |
+| 🎲 **Custom Game Engine** | Turn management, collision detection, win checking |
 
 
 
-**🎉 Master the cards, outsmart the CPUs, and be the first to safe zone!**
+
+This project was developed as part of a university course assignment at **GUC (German University in Cairo)**. It is intended for educational purposes.
+
+---
+
+<div align="center">
+
+**🎴 Master the cards. Outsmart the CPUs. Be the first to the Safe Zone.**
+
+⭐ If you found this project helpful, consider giving it a star!
+
+</div>
